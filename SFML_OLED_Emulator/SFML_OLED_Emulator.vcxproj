@@ -160,17 +160,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\RS232Comm\RS232Comm.cpp" />
+    <ClCompile Include="fonts.c" />
     <ClCompile Include="SFML_OLED_Emulator.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Users\Tower\Desktop\SFML_Collision\SFML_Collision;C:\Users\Tower\Desktop\SFML_Collision\RS232Comm;C:\Users\Tower\Desktop\SFML_Collision\SFML\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\Users\Tower\Desktop\Dev Experiments\SerialGraph_01\RS232Comm;C:\Users\Tower\Desktop\Dev Experiments\SerialGraph_01\SFML\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="ssd1306.c" />
     <ClCompile Include="UtilFuncs.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\RS232Comm\RS232Comm.h" />
-    <ClInclude Include="CharTable.h" />
-    <ClInclude Include="light_ws2812.h" />
+    <ClInclude Include="bitmap.h" />
+    <ClInclude Include="fonts.h" />
+    <ClInclude Include="ssd1306.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="UtilFuncs.h" />
   </ItemGroup>

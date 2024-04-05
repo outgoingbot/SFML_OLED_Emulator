@@ -11,31 +11,32 @@ SSD1306 OLED Emulator
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <RS232Comm.h>
 #include <cmath>
-//#include "Hardware.h"
-//#include "ws2812.h"
+#include "ssd1306.h"
+#include "bitmap.h"
 
-
+//SFML Window Size
 #define WINDOW_WIDTH 1920-200
 #define WINDOW_HEIGHT 1080-200
 
-#define NUM_PAGES 4
+//OLED PARAMS
 #define NUMCOLS 128
 #define NUMROWS 32
-#define NUMLEDS NUMCOLS*NUMROWS //used for the buffer size
+#define NUM_PAGES 4
+#define NUMLEDS NUMCOLS*NUMROWS //used rectange vector
 
 #define ROWS_PER_PAGE NUMROWS/NUM_PAGES
+#define PIXELS_PER_PAGE ROWS_PER_PAGE * NUMCOLS
+#define PIXEL_SIZE 5
+//#define PIXEL_HEIGHT 5
 
-#define PIXEL_WIDTH 5
-#define PIXEL_HEIGHT 5
+#define DELTA_XY 10//WINDOW_WIDTH/NUMCOLS
+#define PADDING_WINDOW_X 50
+#define PADDING_WINDOW_Y 50
 
-#define PAGE_HEIGHT 6 * 8 //will need to add some spacing
+#define PAGE_HEIGHT DELTA_XY * ROWS_PER_PAGE //will need to add some spacing
 
-#define DELTA_X 6//WINDOW_WIDTH/NUMCOLS
-#define DELTA_Y 6//WINDOW_HEIGHT/NUMROWS
 
-#define M_PI 3.141592653589793
 
 //-----------------------------------Global Variables--------------------------------------
 
@@ -71,46 +72,29 @@ int main()
 
 	//Push Pixels onto vector array
 	for (int i = 0; i < NUMLEDS; i++) {
-		Pixels.push_back(sf::RectangleShape(sf::Vector2f(PIXEL_WIDTH, PIXEL_HEIGHT)));
+		Pixels.push_back(sf::RectangleShape(sf::Vector2f(PIXEL_SIZE, PIXEL_SIZE)));
 	}
 
+	
+	//Construct the Matrix of Pixels
 	for (int p = 0; p < NUM_PAGES; p++) {
 		for (int x = 0; x < NUMCOLS; x++) {
-			for (int y = 0; y < 8; y++) {
-				std::cout << ((p+1)*(x * 8) + y) << std::endl;
-				//Pixels[(p * 128) + (x * 1) + y].setPosition(sf::Vector2f(x*DELTA_X, (p*PAGE_HEIGHT) + (y*DELTA_Y)));
-				//Pixels[(p * 128) + (x * 1) + y].setFillColor(sf::Color::Blue);
-				//Pixels[(p * 128) + (x * 1) + y].setOutlineThickness(1);
-				//Pixels[(p * 128) + (x * 1) + y].setOutlineColor(sf::Color(0x80, 0x80, 0x80));
+			for (int y = 0; y < ROWS_PER_PAGE; y++) {
+				//printf_s("%i \r\n", (p*PIXELS_PER_PAGE)+(x*ROWS_PER_PAGE) + y); //debug the indexing. all good now
+				Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setPosition(sf::Vector2f(PADDING_WINDOW_X + (x*DELTA_XY), PADDING_WINDOW_Y + ((p*PAGE_HEIGHT) + (y*DELTA_XY))));
+				Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setFillColor(sf::Color::Blue);
+				Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setOutlineThickness(1);
+				Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setOutlineColor(sf::Color(0x20, 0x20, 0x20));
 			}
 		}
 
 	}
 
+//	while (!SSD1306_Init());  // initialize. blocking if OLED not detected
+	SSD1306_Clear(); //clear oled display buffer
+	SSD1306_UpdateScreen();
+	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
 
-	//Construct the Matrix of Pixels
-	/*
-	#define X_OFFSET 0
-	#define Y_OFFSET 0
-	float xPos = X_OFFSET;
-	float yPos = PIXEL_HEIGHT + Y_OFFSET;
-	for (int y = 0; y < NUMROWS; y++) {
-		for (int x = 0; x < NUMCOLS; x++) {
-			Pixels[(y*NUMCOLS) + x].setPosition(sf::Vector2f(xPos, yPos));
-			Pixels[(y*NUMCOLS) + x].setOutlineThickness(1);
-			Pixels[(y*NUMCOLS) + x].setOutlineColor(sf::Color(0x80,0x80,0x80));
-			Pixels[(y*NUMCOLS) + x].setFillColor(sf::Color(0x00, 0x00, 0x64));
-			xPos += DELTA_X;			
-		}
-		xPos = X_OFFSET;
-		yPos += (DELTA_Y - Y_OFFSET);
-	}
-	*/
-
-
-	//for(auto Pixel : Pixels) Pixel.setFillColor(sf::Color(0x00, 0x128, 0x0));
-
-	//Pixels[(y*NUMCOLS) + x].setFillColor(sf::Color(0x128, 0x00, 0x20));
 
 	//Super Loop Begin
 	while (window->isOpen())
@@ -153,7 +137,9 @@ int main()
 		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) DebugText.move(0, -10);
 		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) DebugText.move(0, 10);
 
-		for (int i = 0; i < NUMLEDS; i++) window->draw(Pixels[i]);
+
+
+		for (auto Pixel : Pixels) window->draw(Pixel);
 		window->display();
 	}//end update loop
 
