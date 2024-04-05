@@ -111,6 +111,7 @@ int main()
 	uint8_t Dpad = DPAD_READY;
 	bool Button = BTN_UP; //active low button
 
+	//This is just to keep track of the trackball "position" based on user input
 	uint32_t Pixel_x = 0;
 	uint32_t Pixel_y = 0;
 
@@ -119,9 +120,9 @@ int main()
 
 //	while (!SSD1306_Init());  // initialize. blocking if OLED not detected
 	SSD1306_Clear(); //clear oled display buffer
-	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
+	//SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
 	SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
-	SSD1306_Clear();
+	//SSD1306_Clear();
 
 	//Super Loop Begin
 	while (window->isOpen())
@@ -153,6 +154,8 @@ int main()
 			}
 		}
 		
+
+		//Get the Emulated TrackBall
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			Button = BTN_DOWN;
 		}
@@ -190,9 +193,8 @@ int main()
 
 
 
-//---------------------------------------Start Embedded Code 
+//---------------------------------------Start Embedded Code Logic
 
-		
 		if (Dpad & DPAD_RIGHT) Pixel_x++;
 		if (Dpad & DPAD_LEFT) Pixel_x--;
 		if (Dpad & DPAD_UP) Pixel_y--;
@@ -207,7 +209,9 @@ int main()
 
 
 		//TODO: The Reverse of this could be done to make a Bitmap Maker function
+		
 		//Set the rectangle Fill every loop from the local buffer
+		//This must be called every loop
 		for (int i = 0; i < 512; i++) {
 			for (int b = 0; b < 8; b++) {
 				if (PixelsDispBuffer[i] & (1 << b)) {
