@@ -45,12 +45,12 @@ SCL        |PB6          |Serial clock line
 SDA        |PB7          |Serial data line
  */
 
-//#include "stm32f4xx_hal.h"
-
 #include "fonts.h"
 
 #include "stdlib.h"
 #include "string.h"
+
+#include <stdio.h>
 
 /* I2C address */
 #ifndef SSD1306_I2C_ADDR
@@ -139,6 +139,13 @@ void SSD1306_Fill(SSD1306_COLOR_t Color);
  * @retval None
  */
 void SSD1306_DrawPixel(uint16_t x, uint16_t y, SSD1306_COLOR_t color);
+
+
+//returns the color of the requested pixel - izzle
+SSD1306_COLOR_t SSD1306_getPixel(uint16_t x, uint16_t y);
+
+
+
 
 /**
  * @brief  Sets cursor pointer to desired location for strings

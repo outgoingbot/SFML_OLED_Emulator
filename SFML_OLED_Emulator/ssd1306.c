@@ -21,7 +21,6 @@
    ----------------------------------------------------------------------
  */
 #include "ssd1306.h"
-#include <stdio.h>
 
 
 extern uint8_t PixelsDispBuffer[512];
@@ -262,20 +261,20 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
 
 void SSD1306_Puti(uint16_t x, uint16_t y, int data, uint16_t length){ //izzle
 	char buffer[64];
-	sprintf_s(buffer, "%d", data);
+	sprintf_s(buffer, 64, "%d", data);
 	SSD1306_GotoXY (x,y);
 	//SSD1306_Puts (buffer, &Font_11x18, 1); //larger font
 	SSD1306_Puts (buffer, &Font_7x10, 1); //smaller font
 }
 
 //Fix this
-//void SSD1306_Putf(uint16_t x, uint16_t y, float data, uint16_t length){ //izzle
-//	char buffer[64];
-//	sprintf_s(buffer, "%3.2f", data);
-//	SSD1306_GotoXY (x,y);
-//	//SSD1306_Puts (buffer, &Font_11x18, 1); //larger font
-//	SSD1306_Puts (buffer, &Font_7x10, 1); //smaller font
-//}
+void SSD1306_Putf(uint16_t x, uint16_t y, float data, uint16_t length){ //izzle
+	char buffer[64];
+	sprintf_s(buffer, 64, "%3.2f", data);
+	SSD1306_GotoXY (x,y);
+	//SSD1306_Puts (buffer, &Font_11x18, 1); //larger font
+	SSD1306_Puts (buffer, &Font_7x10, 1); //smaller font
+}
 //
 
 
@@ -296,6 +295,17 @@ void SSD1306_Fill(SSD1306_COLOR_t color) {
 	/* Set memory */
 	memset(SSD1306_Buffer, (color == SSD1306_COLOR_BLACK) ? 0x00 : 0xFF, sizeof(SSD1306_Buffer));
 }
+SSD1306_COLOR_t SSD1306_getPixel(uint16_t x, uint16_t y) {
+	//SSD1306_COLOR_t c;
+
+	if (x >= SSD1306_WIDTH || y >= SSD1306_HEIGHT) {
+		/* Error */
+		return;
+	}
+
+	return (SSD1306_COLOR_t) SSD1306_Buffer[x + (y / 8) * SSD1306_WIDTH] & (1 << (y % 8));
+}
+
 
 void SSD1306_DrawPixel(uint16_t x, uint16_t y, SSD1306_COLOR_t color) {
 	if (
