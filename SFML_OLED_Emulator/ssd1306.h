@@ -52,8 +52,6 @@ SDA        |PB7          |Serial data line
 #include "stdlib.h"
 #include "string.h"
 
-	uint8_t SSD1306_Buffer[512];
-
 /* I2C address */
 #ifndef SSD1306_I2C_ADDR
 #define SSD1306_I2C_ADDR         0x3C << 1 //0x78  -need to shift one left due to 7-Bit vs 8-Bit I2C addresses
