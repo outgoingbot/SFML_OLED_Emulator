@@ -25,6 +25,8 @@
 //extern I2C_HandleTypeDef hi2c1;
 //extern DMA_HandleTypeDef hdma_i2c1_tx;
 
+//extern uint8_t PixelsDispBuffer[512];
+
 /* Write command */
 #define SSD1306_WRITECOMMAND(command)      ssd1306_I2C_Write(SSD1306_I2C_ADDR, 0x00, (command))
 /* Write data */
@@ -34,7 +36,7 @@
 
 /* SSD1306 data buffer */
 #define BUFFER_SIZE SSD1306_WIDTH * SSD1306_HEIGHT / 8
-static uint8_t SSD1306_Buffer[BUFFER_SIZE];
+ //uint8_t SSD1306_Buffer[BUFFER_SIZE];
 
 /* Private SSD1306 structure */
 typedef struct {
@@ -686,6 +688,13 @@ void SSD1306_UpdateScreen(void) {
 	//		}
 	//	}
 	//}
+
+
+	//copy the contents from the lib buffer to the other.
+	//this is purposfully done ineffeciently so that I must call UPdateScreen in the code
+	//before any change will be seen
+	//for (int i = 0; i < BUFFER_SIZE; i++) PixelsDispBuffer[i] = SSD1306_Buffer[i];
+
 }
 
 

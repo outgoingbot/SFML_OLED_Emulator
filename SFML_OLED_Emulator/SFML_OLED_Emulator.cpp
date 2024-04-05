@@ -47,11 +47,15 @@ sf::RenderWindow* window = nullptr;
 //std::vector<std::vector<sf::RectangleShape> > Pixels(NUMROWS,std::vector<sf::RectangleShape>(NUMCOLS)); // cant figure out how to make 2d object vector
 std::vector<sf::RectangleShape> Pixels;
 
+uint8_t PixelsDispBuffer[512]; //must match the SSD1306 Buffer size
 //--------------------------------------User Function Definitions--------------------------------------
 
 
 int main()
 {	
+
+	//zero out the buffer
+	for (int i = 0; i < 512; i++) PixelsDispBuffer[i] = 0;
 
 	window = new sf::RenderWindow (sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML OLED Emulator");
 	sf::Vector2f mousePos = (sf::Vector2f) sf::Mouse::getPosition(*window);
@@ -91,10 +95,27 @@ int main()
 	}
 
 //	while (!SSD1306_Init());  // initialize. blocking if OLED not detected
-	SSD1306_Clear(); //clear oled display buffer
-	SSD1306_UpdateScreen();
+	//SSD1306_Clear(); //clear oled display buffer
+	
+	//SSD1306_UpdateScreen(); //this is not working. i exposed (static -> extern) the static SSD1306_Buffer just to do some tests
 	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
+	for (int i = 0; i < 512; i++) PixelsDispBuffer[i] = SSD1306_Buffer[i];
+	
+	for (int i = 0; i < 512; i++) {
+		for (int b = 0; b < 8; b++) {
+			if (PixelsDispBuffer[i] & (1 << b)) {
+				Pixels[(i*8)+b].setFillColor(sf::Color::Blue);
+			}
+			else {
+				Pixels[(i * 8) + b].setFillColor(sf::Color::Black);
+			}
+	}
+		}
 
+
+
+
+	//SSD1306_UpdateScreen();
 
 	//Super Loop Begin
 	while (window->isOpen())
