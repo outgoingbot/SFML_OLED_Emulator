@@ -13,14 +13,27 @@ SSD1306 OLED Emulator
 #include <string.h>
 #include <RS232Comm.h>
 #include <cmath>
-#include "Hardware.h"
-#include "ws2812.h"
+//#include "Hardware.h"
+//#include "ws2812.h"
 
-#define WINDOW_WIDTH 2600
-#define WINDOW_HEIGHT 1080
 
-#define PIXEL_WIDTH 10
-#define PIXEL_HEIGHT 10
+#define WINDOW_WIDTH 1920-200
+#define WINDOW_HEIGHT 1080-200
+
+#define NUM_PAGES 4
+#define NUMCOLS 128
+#define NUMROWS 32
+#define NUMLEDS NUMCOLS*NUMROWS //used for the buffer size
+
+#define ROWS_PER_PAGE NUMROWS/NUM_PAGES
+
+#define PIXEL_WIDTH 5
+#define PIXEL_HEIGHT 5
+
+#define PAGE_HEIGHT 6 * 8 //will need to add some spacing
+
+#define DELTA_X 6//WINDOW_WIDTH/NUMCOLS
+#define DELTA_Y 6//WINDOW_HEIGHT/NUMROWS
 
 #define M_PI 3.141592653589793
 
@@ -32,29 +45,17 @@ sf::RenderWindow* window = nullptr;
 //Make Pixels array
 //std::vector<std::vector<sf::RectangleShape> > Pixels(NUMROWS,std::vector<sf::RectangleShape>(NUMCOLS)); // cant figure out how to make 2d object vector
 std::vector<sf::RectangleShape> Pixels;
-ws2812 panel(NUMLEDS);
-
-char charArray[256] = "Empty"; //graphics text buffer sprintf
-
-//holds the 8bit audio values from the serial port
-#define HIGHT 10
-#define HOFFSET 8 //minum value for hightThress (really should be equation (highThresh[i]-lowThresh > HOFFSET)
-
 
 //--------------------------------------User Function Definitions--------------------------------------
-
-
-
 
 
 int main()
 {	
 
-	//sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, 1080), "SFML Playground");
 	window = new sf::RenderWindow (sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML OLED Emulator");
 	sf::Vector2f mousePos = (sf::Vector2f) sf::Mouse::getPosition(*window);
 	window->setMouseCursorVisible(true);
-	window->setFramerateLimit(200);
+	window->setFramerateLimit(60);
 	sf::Font font;
 	if (!font.loadFromFile("../res/Pumpkin_Pancakes.ttf")) {
 		printf("Error loading Font");
@@ -73,13 +74,24 @@ int main()
 		Pixels.push_back(sf::RectangleShape(sf::Vector2f(PIXEL_WIDTH, PIXEL_HEIGHT)));
 	}
 
-	panel.setBrightness(BMAX);
+	for (int p = 0; p < NUM_PAGES; p++) {
+		for (int x = 0; x < NUMCOLS; x++) {
+			for (int y = 0; y < 8; y++) {
+				std::cout << ((p+1)*(x * 8) + y) << std::endl;
+				//Pixels[(p * 128) + (x * 1) + y].setPosition(sf::Vector2f(x*DELTA_X, (p*PAGE_HEIGHT) + (y*DELTA_Y)));
+				//Pixels[(p * 128) + (x * 1) + y].setFillColor(sf::Color::Blue);
+				//Pixels[(p * 128) + (x * 1) + y].setOutlineThickness(1);
+				//Pixels[(p * 128) + (x * 1) + y].setOutlineColor(sf::Color(0x80, 0x80, 0x80));
+			}
+		}
+
+	}
+
 
 	//Construct the Matrix of Pixels
-	#define DELTA_X WINDOW_WIDTH/NUMCOLS
-	#define DELTA_Y WINDOW_HEIGHT/NUMROWS
-	#define X_OFFSET 10	
-	#define Y_OFFSET 15
+	/*
+	#define X_OFFSET 0
+	#define Y_OFFSET 0
 	float xPos = X_OFFSET;
 	float yPos = PIXEL_HEIGHT + Y_OFFSET;
 	for (int y = 0; y < NUMROWS; y++) {
@@ -87,14 +99,18 @@ int main()
 			Pixels[(y*NUMCOLS) + x].setPosition(sf::Vector2f(xPos, yPos));
 			Pixels[(y*NUMCOLS) + x].setOutlineThickness(1);
 			Pixels[(y*NUMCOLS) + x].setOutlineColor(sf::Color(0x80,0x80,0x80));
-			//Pixels[(x*NUM_ROWS)+y].setFillColor(sf::Color(0x00, 0x00, 0xFF));
-			panel.setPixelColor(grid[x][y], 0xAA0000);
+			Pixels[(y*NUMCOLS) + x].setFillColor(sf::Color(0x00, 0x00, 0x64));
 			xPos += DELTA_X;			
 		}
 		xPos = X_OFFSET;
 		yPos += (DELTA_Y - Y_OFFSET);
 	}
+	*/
 
+
+	//for(auto Pixel : Pixels) Pixel.setFillColor(sf::Color(0x00, 0x128, 0x0));
+
+	//Pixels[(y*NUMCOLS) + x].setFillColor(sf::Color(0x128, 0x00, 0x20));
 
 	//Super Loop Begin
 	while (window->isOpen())
@@ -137,10 +153,8 @@ int main()
 		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) DebugText.move(0, -10);
 		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) DebugText.move(0, 10);
 
-		//for (int i = 0; i < NUMLEDS; i++) window->draw(Pixels[i]);
-		
-		panel.show();
-		//window->display();
+		for (int i = 0; i < NUMLEDS; i++) window->draw(Pixels[i]);
+		window->display();
 	}//end update loop
 
 	return 0;
