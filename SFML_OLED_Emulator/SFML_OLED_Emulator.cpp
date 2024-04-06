@@ -15,17 +15,12 @@ ctrl + l load the bitmap (byte array) to the display ssd1306_buffer[] (non-local
 
 */
 
-
-//Todo: there is a bug causing a x+1 shift when the page index is incremented.
-
-//I think is were I am setting the data and that is why the mousedraw needed a hack to fix it i.e. (x-p)
-
 #include <fstream> 
 #include <iostream>
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
-#include <thread>
+//#include <thread>
 #include <Windows.h>    
 #include <stdlib.h>
 #include <stdio.h>
@@ -63,6 +58,9 @@ sf::CircleShape* TBpad = new sf::CircleShape(100);
 sf::CircleShape* TB = new sf::CircleShape(50);
 std::vector<sf::RectangleShape> LED_RGBW;
 
+sf::Text* DebugText = new sf::Text();
+bool buttonUp = false;
+
 //User Input
 sf::Vector2f mousePosf;
 
@@ -78,114 +76,16 @@ extern "C" {
 }
 #endif
 
+//function prototyping
+int saveFile();
+int loadFile();
+bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS);
+int mapXYtoRect(uint32_t x, uint32_t y);
+sf::Vector2i mapRecttoXY(uint32_t i);
+void setLED(int idx);
+void clearLED(int idx);
+//function prototypes
 
-//ToDo: this is working but thge data layout is wrong.
-//1) fix the loading file -> array
-//2) create another function that will reshape the array <-- wait, why not just modify the firmware code how the bitmap loading is done. <-- do this and test on MCU
-
-int saveFile() {
-	int size = 512; //num bytes to write
-	
-	// Open for Write
-	std::ofstream outfile("OLED_bitmap.txt");
-	if (!outfile.is_open()) {
-		std::cerr << "Failed to open file for writing.\n";
-		return 1;
-	}
-
-	printf("Opening File for Write\r\n");
-	// Writing the array elements to the file 
-	for (int i = 0; i < size; i++) {
-		outfile << PixelsDispBuffer[i] << " ";
-	}
-
-	printf("Saving File \r\n");
-	// Closing the file 
-	outfile.close();
-}
-
-int loadFile() {
-	int size = 512; 
-	printf("Opening File for Read\r\n");
-	// Opening the file in read mode 
-	std::ifstream infile("OLED_bitmap.txt");
-
-	// Reading the array elements from the file 
-	for (int i = 0; i < size; i++) {
-		infile >> SSD1306_Buffer[i]; //Do not access this Buffer anywhere else!
-	}
-
-	// Closing the file 
-	infile.close();
-
-	// Displaying the loaded contents to the Console
-	std::cout << "SSD1306_Buffer[] elements: \r\n";
-	for (int i = 0; i < size; i++) {
-		printf("%2x ", SSD1306_Buffer[i]);
-		if (!((i+1) % 32)) printf("\r\n");
-	}
-	std::cout << std::endl;
-	std::cout << std::endl;
-
-	// Displaying the loaded contents to the Console for Copy Paste
-	std::cout << "const unsigned char Boot [] = { \r\n";
-	for (int i = 0; i < size; i++) {
-		printf("0x%02x, ", SSD1306_Buffer[i]);
-		if (!((i + 1) % 16)) printf("\r\n");
-	}
-	std::cout << std::endl;
-	std::cout << "};\r\n";
-
-	return 0;
-}
-
-//--------------------------------------User Function Definitions--------------------------------------
-bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS) {
-	if (mousePosition->x > RS->getPosition().x && mousePosition->x < RS->getPosition().x + RS->getSize().x) {
-		if (mousePosition->y > RS->getPosition().y && mousePosition->y < RS->getPosition().y + RS->getSize().y) {
-			return true;
-		}
-	}
-	return false;
-}
-
-int mapXYtoRect(uint32_t x, uint32_t y) {
-	if (x >= NUMCOLS) return 0;
-	if (x < 0) return 0;
-
-	if (y >= NUMROWS) return 0;
-	if (y < 0) return 0;
-
-	uint32_t p = 0;
-	//map 2d coordinates to rectange array Pixels
-	if (y < ROWS_PER_PAGE * 4) p = 3;
-	if (y < ROWS_PER_PAGE * 3) p = 2;
-	if (y < ROWS_PER_PAGE * 2) p = 1;
-	if (y < ROWS_PER_PAGE * 1) p = 0;
-
-	//not sure why I need to shift the x axis back by p.
-	return ((p * PIXELS_PER_PAGE) + ((x - p) * ROWS_PER_PAGE) + y);
-}
-
-//Todo: there is a Bug here with the first byte (oled pixels x=0, y=0 to 7)
-sf::Vector2i mapRecttoXY(uint32_t i) {
-	uint32_t p, x, y;
-	if (i < PIXELS_PER_PAGE * 4) p = 3;
-	if (i < PIXELS_PER_PAGE * 3) p = 2;
-	if (i < PIXELS_PER_PAGE * 2) p = 1;
-	if (i < PIXELS_PER_PAGE * 1) p = 0;
-
-	//this is ugly but works
-	x = i / ROWS_PER_PAGE;
-	if (x > 0) {
-		y = (i % x) + (p*ROWS_PER_PAGE);
-	}
-	else {
-		y = i;
-	}
-	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
-	return sf::Vector2i(x, y);
-}
 
 void setRect_Param(uint32_t x, uint32_t y) {
 	if (x >= NUMCOLS) return;
@@ -200,46 +100,6 @@ void setRect_Param(uint32_t x, uint32_t y) {
 }
 
 
-void setLED(int idx) {
-	if (idx < 0 || idx>3) return;
-	switch (idx){
-	case 0:
-		LED_RGBW[0].setFillColor(sf::Color::Red);
-		break;
-	case 1:
-		LED_RGBW[1].setFillColor(sf::Color::Green);
-		break;
-
-	case 2:
-		LED_RGBW[2].setFillColor(sf::Color::Blue);
-		break;
-
-	case 3:
-		LED_RGBW[3].setFillColor(sf::Color::White);
-		break;
-	}
-}
-
-void clearLED(int idx) {
-	if (idx < 0 || idx>3) return;
-	switch (idx) {
-	case 0:
-		LED_RGBW[0].setFillColor(outlineColor);
-		break;
-	case 1:
-		LED_RGBW[1].setFillColor(outlineColor);
-		break;
-
-	case 2:
-		LED_RGBW[2].setFillColor(outlineColor);
-		break;
-
-	case 3:
-		LED_RGBW[3].setFillColor(outlineColor);
-		break;
-	}
-}
-
 int main()
 {	
 	window = new sf::RenderWindow (sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML OLED Emulator");
@@ -252,6 +112,11 @@ int main()
 		printf("Error loading Font");
 		system("pause");
 	}
+	// select the font
+	DebugText->setFont(font); // font is a sf::Font
+	DebugText->setPosition(sf::Vector2f(10, 500));
+							  // set the string to display
+	DebugText->setString("Empty ");
 
 	//Setup the TrackBall
 	TBpad->setFillColor(sf::Color(0x20,0x20,0x20));
@@ -320,15 +185,20 @@ int main()
 	uint32_t Pixel_y = 0;
 
 	int count = 0;
-
 //---------------------------------------End Embedded Code Variables
-	bool buttonUp = false;
 
-	//-------Start Embedded Splash
+
+//------------------------------------Start Embedded Splash
+	SSD1306_Init();
 	SSD1306_Clear(); //clear oled display buffer
-	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
+	SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
+	SSD1306_GotoXY(0, 0);
+	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
+	//SSD1306_Puti(5, 5, 9999, 5);	
+	//SSD1306_GotoXY(0, 0);
+	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 	SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
-	//-------End Embedded Splash
+//-----------------------------------End Embedded Splash
 
 	//Super Loop Begin
 	while (window->isOpen())
@@ -445,7 +315,8 @@ int main()
 			!sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
 			Dpad = DPAD_READY;
 		}
-		
+	
+
 
 //---------------------------------------Start Embedded Code Logic
 		//MCU drawing code using Trackball
@@ -455,6 +326,8 @@ int main()
 		if ((Dpad & DPAD_DOWN) && Pixel_y < NUMROWS-1) Pixel_y++;
 	
 		if (!Button) {
+		//if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+	//		while (sf::Keyboard::isKeyPressed(sf::Keyboard::Space));
 			if (!SSD1306_getPixel(Pixel_x, Pixel_y)) {
 				SSD1306_DrawPixel(Pixel_x, Pixel_y, SSD1306_COLOR_WHITE);
 			}
@@ -462,10 +335,10 @@ int main()
 				SSD1306_DrawPixel(Pixel_x, Pixel_y, SSD1306_COLOR_BLACK);
 			}
 		}
+		//printf("%i , %i \r\n", Pixel_x, Pixel_y);
 		//END MCU drawing code using Trackball
-
-		/*SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
-		count++;
+		
+		/*count++;
 		SSD1306_Puti(5, 5, count, 5);*/
 
 		SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
@@ -493,8 +366,154 @@ int main()
 		window->draw(*TBpad);
 		window->draw(*TB);
 		for (auto led : LED_RGBW) window->draw(led);
+		//window->draw(*DebugText);
 		window->display();
 	}//end update loop
 
 	return 0;
+}
+
+
+int saveFile() {
+	int size = 512; //num bytes to write
+
+	// Open for Write
+	std::ofstream outfile("OLED_bitmap.txt", std::ios::binary | std::ios::out);
+	if (!outfile.is_open()) {
+		std::cerr << "Failed to open file for writing.\n";
+		return 1;
+	}
+
+	outfile.width(1);
+	printf("Opening File for Write\r\n");
+	// Writing the array elements to the file 
+	outfile.write((char*)SSD1306_Buffer, size);
+	printf("Saving File \r\n");
+	// Closing the file 
+	outfile.close();
+}
+
+
+
+
+int loadFile() {
+	int size = 512;
+	printf("Opening File for Read\r\n");
+	// Opening the file in read mode 
+	std::ifstream infile("OLED_bitmap.txt", std::ios::binary | std::ios::in);
+
+	//read the array
+	infile.read((char*)SSD1306_Buffer, size);
+	// Closing the file 
+	infile.close();
+
+	// Displaying the loaded contents to the Console
+	std::cout << "SSD1306_Buffer[] elements: \r\n";
+	for (int i = 0; i < size; i++) {
+		printf("%2x ", SSD1306_Buffer[i]);
+		if (!((i + 1) % 32)) printf("\r\n");
+	}
+	std::cout << std::endl;
+	std::cout << std::endl;
+
+	// Displaying the loaded contents to the Console for Copy Paste
+	std::cout << "const unsigned char Boot [] = { \r\n";
+	for (int i = 0; i < size; i++) {
+		printf("0x%02x, ", SSD1306_Buffer[i]);
+		if (!((i + 1) % 16)) printf("\r\n");
+	}
+	std::cout << std::endl;
+	std::cout << "};\r\n";
+
+	return 0;
+}
+
+//--------------------------------------User Function Definitions--------------------------------------
+bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS) {
+	if (mousePosition->x > RS->getPosition().x && mousePosition->x < RS->getPosition().x + RS->getSize().x) {
+		if (mousePosition->y > RS->getPosition().y && mousePosition->y < RS->getPosition().y + RS->getSize().y) {
+			return true;
+		}
+	}
+	return false;
+}
+
+int mapXYtoRect(uint32_t x, uint32_t y) {
+	if (x >= NUMCOLS) return 0;
+	if (x < 0) return 0;
+
+	if (y >= NUMROWS) return 0;
+	if (y < 0) return 0;
+
+	uint32_t p = 0;
+	//map 2d coordinates to rectange array Pixels
+	if (y < ROWS_PER_PAGE * 4) p = 3;
+	if (y < ROWS_PER_PAGE * 3) p = 2;
+	if (y < ROWS_PER_PAGE * 2) p = 1;
+	if (y < ROWS_PER_PAGE * 1) p = 0;
+
+	//not sure why I need to shift the x axis back by p.
+	return ((p * PIXELS_PER_PAGE) + ((x - p) * ROWS_PER_PAGE) + y);
+}
+
+//Todo: there is a Bug here with the first byte (oled pixels x=0, y=0 to 7)
+sf::Vector2i mapRecttoXY(uint32_t i) {
+	uint32_t p, x, y;
+	if (i < PIXELS_PER_PAGE * 4) p = 3;
+	if (i < PIXELS_PER_PAGE * 3) p = 2;
+	if (i < PIXELS_PER_PAGE * 2) p = 1;
+	if (i < PIXELS_PER_PAGE * 1) p = 0;
+
+	//this is ugly but works
+	x = i / ROWS_PER_PAGE;
+	if (x > 0) { //hack for when x = 0;
+		y = (i % x) + (p*ROWS_PER_PAGE);
+	}
+	else {
+		y = i;
+	}
+	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
+	return sf::Vector2i(x, y);
+}
+
+
+
+void setLED(int idx) {
+	if (idx < 0 || idx>3) return;
+	switch (idx) {
+	case 0:
+		LED_RGBW[0].setFillColor(sf::Color::Red);
+		break;
+	case 1:
+		LED_RGBW[1].setFillColor(sf::Color::Green);
+		break;
+
+	case 2:
+		LED_RGBW[2].setFillColor(sf::Color::Blue);
+		break;
+
+	case 3:
+		LED_RGBW[3].setFillColor(sf::Color::White);
+		break;
+	}
+}
+
+void clearLED(int idx) {
+	if (idx < 0 || idx>3) return;
+	switch (idx) {
+	case 0:
+		LED_RGBW[0].setFillColor(outlineColor);
+		break;
+	case 1:
+		LED_RGBW[1].setFillColor(outlineColor);
+		break;
+
+	case 2:
+		LED_RGBW[2].setFillColor(outlineColor);
+		break;
+
+	case 3:
+		LED_RGBW[3].setFillColor(outlineColor);
+		break;
+	}
 }

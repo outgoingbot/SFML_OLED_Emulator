@@ -164,11 +164,11 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
 void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
 {
 	//Todo: oled draw bitmap change strructure
-	// 1) first just copy the whole array into the SSD1306_Buffer[]
+	// 1) first just copy the whole array into the SSD1306_Buffer[] <--Done
 
 	//then add the ability to index to draw a Sub sized image into the display buffer
 
-	for (int16_t i = 0; i < w*h; i++)
+	for (int16_t i = 0; i < 512; i++)
 	{
 		SSD1306_Buffer[i] = *(bitmap + i);
 	
@@ -190,7 +190,7 @@ void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int1
  using dma for all pixel data transfers.
  **/
 //
-//uint8_t SSD1306_Init(void) {
+uint8_t SSD1306_Init(void) {
 //	//OLED Reset Pin (modified izzle)
 //	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1, GPIO_PIN_RESET);
 //	HAL_Delay (50);
@@ -255,23 +255,23 @@ void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int1
 //	SSD1306_WRITECOMMAND(0xAF); //--turn on SSD1306 panel
 //	SSD1306_WRITECOMMAND(SSD1306_DEACTIVATE_SCROLL);
 //
-//	//HAL_Delay(500);
-//	/* Clear screen */
-//	SSD1306_Fill(SSD1306_COLOR_BLACK);
-//	
-//	/* Update screen */
-//	SSD1306_UpdateScreen();
-//	
-//	/* Set default values */
-//	SSD1306.CurrentX = 0;
-//	SSD1306.CurrentY = 0;
-//	
-//	/* Initialized OK */
-//	SSD1306.Initialized = 1;
-//	
-//	/* Return OK */
-//	return 1;
-//}
+	//HAL_Delay(500);
+	/* Clear screen */
+	SSD1306_Fill(SSD1306_COLOR_BLACK);
+	
+	/* Update screen */
+	SSD1306_UpdateScreen();
+	
+	/* Set default values */
+	SSD1306.CurrentX = 0;
+	SSD1306.CurrentY = 0;
+	
+	/* Initialized OK */
+	SSD1306.Initialized = 1;
+	
+	/* Return OK */
+	return 1;
+}
 
 
 void SSD1306_Puti(uint16_t x, uint16_t y, int data, uint16_t length){ //izzle

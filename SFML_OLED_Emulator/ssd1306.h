@@ -109,7 +109,7 @@ void SSD1306_Putf(uint16_t x, uint16_t y, float data, uint16_t length);
  *           - 0: LCD was not detected on I2C port
  *           - > 0: LCD initialized OK and ready to use
  */
-//uint8_t SSD1306_Init(void);
+uint8_t SSD1306_Init(void);
 
 /** 
  * @brief  Updates buffer from internal RAM to LCD
