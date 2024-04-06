@@ -1,9 +1,26 @@
 /*
 SSD1306 OLED Emulator
+
+keyboard arrow keys move pixel selection.
+space with toggle the pixel color - bouncy atm :(
+
+escape clears the LL buffer (which in turn clears the local buffer)
+1,2,3,4 turn ON RGBW Leds
+LShift + 1,2,3,4 turn OFF RGBW Leds
+ 
+ mouse left click can also setPixels and mouse Righgt click clears them
+
+ctrl + s save the bitmap (byte array) to a file on the system
+ctrl + l load the bitmap (byte array) to the display ssd1306_buffer[] (non-local) on the system
+
 */
 
-//Todo: make ctrl + s save the bitmap (byte array) to a file on the system
 
+//Todo: there is a bug causing a x+1 shift when the page index is incremented.
+
+//I think is were I am setting the data and that is why the mousedraw needed a hack to fix it i.e. (x-p)
+
+#include <fstream> 
 #include <iostream>
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
@@ -62,8 +79,65 @@ extern "C" {
 #endif
 
 
+//ToDo: this is working but thge data layout is wrong.
+//1) fix the loading file -> array
+//2) create another function that will reshape the array <-- wait, why not just modify the firmware code how the bitmap loading is done. <-- do this and test on MCU
 
+int saveFile() {
+	int size = 512; //num bytes to write
+	
+	// Open for Write
+	std::ofstream outfile("OLED_bitmap.txt");
+	if (!outfile.is_open()) {
+		std::cerr << "Failed to open file for writing.\n";
+		return 1;
+	}
 
+	printf("Opening File for Write\r\n");
+	// Writing the array elements to the file 
+	for (int i = 0; i < size; i++) {
+		outfile << PixelsDispBuffer[i] << " ";
+	}
+
+	printf("Saving File \r\n");
+	// Closing the file 
+	outfile.close();
+}
+
+int loadFile() {
+	int size = 512; 
+	printf("Opening File for Read\r\n");
+	// Opening the file in read mode 
+	std::ifstream infile("OLED_bitmap.txt");
+
+	// Reading the array elements from the file 
+	for (int i = 0; i < size; i++) {
+		infile >> SSD1306_Buffer[i]; //Do not access this Buffer anywhere else!
+	}
+
+	// Closing the file 
+	infile.close();
+
+	// Displaying the loaded contents to the Console
+	std::cout << "SSD1306_Buffer[] elements: \r\n";
+	for (int i = 0; i < size; i++) {
+		printf("%2x ", SSD1306_Buffer[i]);
+		if (!((i+1) % 32)) printf("\r\n");
+	}
+	std::cout << std::endl;
+	std::cout << std::endl;
+
+	// Displaying the loaded contents to the Console for Copy Paste
+	std::cout << "const unsigned char Boot [] = { \r\n";
+	for (int i = 0; i < size; i++) {
+		printf("0x%02x, ", SSD1306_Buffer[i]);
+		if (!((i + 1) % 16)) printf("\r\n");
+	}
+	std::cout << std::endl;
+	std::cout << "};\r\n";
+
+	return 0;
+}
 
 //--------------------------------------User Function Definitions--------------------------------------
 bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS) {
@@ -93,6 +167,7 @@ int mapXYtoRect(uint32_t x, uint32_t y) {
 	return ((p * PIXELS_PER_PAGE) + ((x - p) * ROWS_PER_PAGE) + y);
 }
 
+//Todo: there is a Bug here with the first byte (oled pixels x=0, y=0 to 7)
 sf::Vector2i mapRecttoXY(uint32_t i) {
 	uint32_t p, x, y;
 	if (i < PIXELS_PER_PAGE * 4) p = 3;
@@ -102,7 +177,12 @@ sf::Vector2i mapRecttoXY(uint32_t i) {
 
 	//this is ugly but works
 	x = i / ROWS_PER_PAGE;
-	y = (i % x) + (p*ROWS_PER_PAGE);
+	if (x > 0) {
+		y = (i % x) + (p*ROWS_PER_PAGE);
+	}
+	else {
+		y = i;
+	}
 	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
 	return sf::Vector2i(x, y);
 }
@@ -303,6 +383,17 @@ int main()
 
 		//escape will erase the SSD1306_buffer
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) SSD1306_Clear();
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+			while (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::S)); //shitty way to not spam save. will add a lock later
+			saveFile();
+		}
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+			while (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::L)); //shitty way to not spam save. will add a lock later
+			loadFile();
+		}
+
 
 		//Get the Emulated TrackBall
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {

@@ -34,8 +34,9 @@ extern uint8_t PixelsDispBuffer[512];
 #define ABS(x)   ((x) > 0 ? (x) : -(x))
 
 /* SSD1306 data buffer */
-#define BUFFER_SIZE SSD1306_WIDTH * SSD1306_HEIGHT / 8
- static uint8_t SSD1306_Buffer[BUFFER_SIZE];
+//#define BUFFER_SIZE SSD1306_WIDTH * SSD1306_HEIGHT / 8
+ //static uint8_t SSD1306_Buffer[BUFFER_SIZE];
+
 
 /* Private SSD1306 structure */
 typedef struct {
@@ -159,6 +160,20 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
     }
 }
 
+//changing how the drawbitmap works
+void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
+{
+	//Todo: oled draw bitmap change strructure
+	// 1) first just copy the whole array into the SSD1306_Buffer[]
+
+	//then add the ability to index to draw a Sub sized image into the display buffer
+
+	for (int16_t i = 0; i < w*h; i++)
+	{
+		SSD1306_Buffer[i] = *(bitmap + i);
+	
+	}
+}
 
 
 

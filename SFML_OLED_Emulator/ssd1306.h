@@ -72,6 +72,11 @@ SDA        |PB7          |Serial data line
 #define SSD1306_NUM_PAGES        SSD1306_HEIGHT/8
 #endif
 
+	/* SSD1306 data buffer - izzle */
+#define BUFFER_SIZE SSD1306_WIDTH * SSD1306_HEIGHT / 8
+uint8_t SSD1306_Buffer[BUFFER_SIZE]; //needed to expose this for the loadFile function in main()
+
+
 
 /**
  * @brief  SSD1306 color enumeration
@@ -285,6 +290,7 @@ void ssd1306_I2C_WriteMulti(uint8_t address, uint8_t reg, uint8_t *data, uint16_
  */
 void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color);
 
+void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color);
 // scroll the screen for fixed rows
 
 void SSD1306_ScrollRight(uint8_t start_row, uint8_t end_row);
