@@ -243,7 +243,7 @@ int main()
 
 //	while (!SSD1306_Init());  // initialize. blocking if OLED not detected
 	SSD1306_Clear(); //clear oled display buffer
-	//SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
+	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
 	SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
 	//SSD1306_Clear();
 
