@@ -2,6 +2,8 @@
 SSD1306 OLED Emulator
 */
 
+//Todo: make ctrl + s save the bitmap (byte array) to a file on the system
+
 #include <iostream>
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
@@ -171,7 +173,7 @@ int main()
 		system("pause");
 	}
 
-	//TBpad->setOutlineThickness(1);
+	//Setup the TrackBall
 	TBpad->setFillColor(sf::Color(0x20,0x20,0x20));
 	TBpad->setRadius(100);
 	TBpad->setOrigin(100, 100);
@@ -183,6 +185,7 @@ int main()
 	TB->setPosition(TBpad->getPosition());
 	sf::Vector2f TB_HOME(TBpad->getPosition());
 	
+	//Setup the TrackBall LEDs
 	for (int i = 0; i < 4; i++) LED_RGBW.push_back(sf::RectangleShape(sf::Vector2f(20, 20)));
 	for (int i = 0; i < 4; i++) LED_RGBW[i].setOrigin(sf::Vector2f(10, 10));
 	for (int i = 0; i < 4; i++) LED_RGBW[i].setFillColor(outlineColor);
@@ -191,7 +194,7 @@ int main()
 	LED_RGBW[2].setPosition(sf::Vector2f(TBpad->getPosition().x - 100, TBpad->getPosition().y + 100));
 	LED_RGBW[3].setPosition(sf::Vector2f(TBpad->getPosition().x + 100, TBpad->getPosition().y + 100));
 
-
+	//initialize mouse position variable
 	mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
 	
 	//zero out the Pixel Display buffer
@@ -241,18 +244,15 @@ int main()
 //---------------------------------------End Embedded Code Variables
 	bool buttonUp = false;
 
-//	while (!SSD1306_Init());  // initialize. blocking if OLED not detected
+	//-------Start Embedded Splash
 	SSD1306_Clear(); //clear oled display buffer
 	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, 1); //boot splash screen
 	SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
-	//SSD1306_Clear();
+	//-------End Embedded Splash
 
 	//Super Loop Begin
 	while (window->isOpen())
 	{
-
-
-
 		//-----------------------------------------------------Get Mouse & Keyboard inputs----------------------------------------------------------------|
 		//Mouse Drawing - Writes to the SSD1306_Buffer so that we can Export the buffer to save bitmaps!
 		mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
@@ -296,12 +296,12 @@ int main()
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) setLED(1);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) setLED(2);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4)) setLED(3);
-
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(0);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(1);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(2);
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(3);
 
+		//escape will erase the SSD1306_buffer
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) SSD1306_Clear();
 
 		//Get the Emulated TrackBall
@@ -342,7 +342,7 @@ int main()
 			Dpad &= ~(DPAD_RIGHT);
 		}
 
-		//update the trackball grapics
+		//update the trackball graphics
 		float TBx = (50 * (((Dpad & DPAD_RIGHT)) >>3)) - (50 * (((Dpad & DPAD_LEFT)>> 2)));
 		float TBy = (50 * (((Dpad & DPAD_DOWN)) >> 1)) - (50 * (((Dpad & DPAD_UP) >> 0)));		
 		TB->setPosition(sf::Vector2f(TB_HOME.x + TBx, TB_HOME.y + TBy));
