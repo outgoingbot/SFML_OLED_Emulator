@@ -16,8 +16,8 @@ SSD1306 OLED Emulator
 #include "bitmap.h"
 
 //SFML Window Size
-#define WINDOW_WIDTH 1920-700
-#define WINDOW_HEIGHT 1080-400
+#define WINDOW_WIDTH (1920-750)
+#define WINDOW_HEIGHT (1080-400)
 
 //adjust where the "OLED' is placed reletive to the window Origin
 #define PADDING_WINDOW_X 70
@@ -39,6 +39,10 @@ SSD1306 OLED Emulator
 
 //Graphics
 sf::RenderWindow* window = nullptr;
+
+sf::CircleShape* TBpad = new sf::CircleShape(100);
+sf::CircleShape* TB = new sf::CircleShape(50);
+std::vector<sf::RectangleShape> LED_RGBW;
 
 //User Input
 sf::Vector2f mousePosf;
@@ -114,15 +118,52 @@ void setRect_Param(uint32_t x, uint32_t y) {
 }
 
 
+void setLED(int idx) {
+	if (idx < 0 || idx>3) return;
+	switch (idx){
+	case 0:
+		LED_RGBW[0].setFillColor(sf::Color::Red);
+		break;
+	case 1:
+		LED_RGBW[1].setFillColor(sf::Color::Green);
+		break;
+
+	case 2:
+		LED_RGBW[2].setFillColor(sf::Color::Blue);
+		break;
+
+	case 3:
+		LED_RGBW[3].setFillColor(sf::Color::White);
+		break;
+	}
+}
+
+void clearLED(int idx) {
+	if (idx < 0 || idx>3) return;
+	switch (idx) {
+	case 0:
+		LED_RGBW[0].setFillColor(outlineColor);
+		break;
+	case 1:
+		LED_RGBW[1].setFillColor(outlineColor);
+		break;
+
+	case 2:
+		LED_RGBW[2].setFillColor(outlineColor);
+		break;
+
+	case 3:
+		LED_RGBW[3].setFillColor(outlineColor);
+		break;
+	}
+}
+
 int main()
 {	
 	window = new sf::RenderWindow (sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML OLED Emulator");
-	
-	mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-	
 	window->setMouseCursorVisible(true);
-	//window->setFramerateLimit(60);
-	
+	window->setFramerateLimit(60);
+	window->setActive(true);
 
 	sf::Font font;
 	if (!font.loadFromFile("../res/Pumpkin_Pancakes.ttf")) {
@@ -130,11 +171,29 @@ int main()
 		system("pause");
 	}
 
-	//set FPS
-	window->setFramerateLimit(60); //seriously reduces the CPU/GPU utilization
-	window->setActive(true);
+	//TBpad->setOutlineThickness(1);
+	TBpad->setFillColor(sf::Color(0x20,0x20,0x20));
+	TBpad->setRadius(100);
+	TBpad->setOrigin(100, 100);
+	TBpad->setPosition(sf::Vector2f(WINDOW_WIDTH / 2, WINDOW_HEIGHT - TBpad->getRadius()-50));
+	
+	TB->setFillColor(sf::Color::Red);
+	TB->setRadius(25);
+	TB->setOrigin(25,25);
+	TB->setPosition(TBpad->getPosition());
+	sf::Vector2f TB_HOME(TBpad->getPosition());
+	
+	for (int i = 0; i < 4; i++) LED_RGBW.push_back(sf::RectangleShape(sf::Vector2f(20, 20)));
+	for (int i = 0; i < 4; i++) LED_RGBW[i].setOrigin(sf::Vector2f(10, 10));
+	for (int i = 0; i < 4; i++) LED_RGBW[i].setFillColor(outlineColor);
+	LED_RGBW[0].setPosition(sf::Vector2f(TBpad->getPosition().x - 100, TBpad->getPosition().y - 100));
+	LED_RGBW[1].setPosition(sf::Vector2f(TBpad->getPosition().x + 100, TBpad->getPosition().y - 100));
+	LED_RGBW[2].setPosition(sf::Vector2f(TBpad->getPosition().x - 100, TBpad->getPosition().y + 100));
+	LED_RGBW[3].setPosition(sf::Vector2f(TBpad->getPosition().x + 100, TBpad->getPosition().y + 100));
 
 
+	mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+	
 	//zero out the Pixel Display buffer
 	for (int i = 0; i < 512; i++) PixelsDispBuffer[i] = 0;
 
@@ -232,13 +291,27 @@ int main()
 			}
 		}
 		
+		//testing the RGBW LEDS. using some.
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) setLED(0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) setLED(1);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) setLED(2);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4)) setLED(3);
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(0);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(1);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(2);
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4) && sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) clearLED(3);
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) SSD1306_Clear();
 
 		//Get the Emulated TrackBall
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			Button = BTN_DOWN;
+			TB->setFillColor(sf::Color::Red);
 		}
 		else {
 			Button = BTN_UP;
+			TB->setFillColor(sf::Color(0x50, 0x50, 0x50));
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
@@ -269,7 +342,19 @@ int main()
 			Dpad &= ~(DPAD_RIGHT);
 		}
 
+		//update the trackball grapics
+		float TBx = (50 * (((Dpad & DPAD_RIGHT)) >>3)) - (50 * (((Dpad & DPAD_LEFT)>> 2)));
+		float TBy = (50 * (((Dpad & DPAD_DOWN)) >> 1)) - (50 * (((Dpad & DPAD_UP) >> 0)));		
+		TB->setPosition(sf::Vector2f(TB_HOME.x + TBx, TB_HOME.y + TBy));
+		//printf("%x \r\n", Dpad); //debug to console
 
+		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
+			!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
+			!sf::Keyboard::isKeyPressed(sf::Keyboard::Left) &&
+			!sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+			Dpad = DPAD_READY;
+		}
+		
 
 //---------------------------------------Start Embedded Code Logic
 		//MCU drawing code using Trackball
@@ -314,6 +399,9 @@ int main()
 		}
 		
 		for (auto Pixel : Pixels) window->draw(Pixel);
+		window->draw(*TBpad);
+		window->draw(*TB);
+		for (auto led : LED_RGBW) window->draw(led);
 		window->display();
 	}//end update loop
 
