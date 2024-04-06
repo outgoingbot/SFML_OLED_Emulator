@@ -19,22 +19,21 @@ SSD1306 OLED Emulator
 #define WINDOW_WIDTH 1920-700
 #define WINDOW_HEIGHT 1080-400
 
+//adjust where the "OLED' is placed reletive to the window Origin
+#define PADDING_WINDOW_X 70
+#define PADDING_WINDOW_Y 50
+
 //OLED PARAMS
 #define NUMCOLS 128
 #define NUMROWS 32
 #define NUM_PAGES 4
-#define NUM_PIXELS NUMCOLS*NUMROWS //used rectange vector
-
-#define ROWS_PER_PAGE NUMROWS/NUM_PAGES
-#define PIXELS_PER_PAGE ROWS_PER_PAGE * NUMCOLS
+#define NUM_PIXELS (NUMCOLS*NUMROWS) //used rectange vector
+#define ROWS_PER_PAGE (NUMROWS/NUM_PAGES)
+#define PIXELS_PER_PAGE (ROWS_PER_PAGE * NUMCOLS)
 #define PIXEL_SIZE 5
-//#define PIXEL_HEIGHT 5
+#define DELTA_XY 8 //Spacing of the Pixels (larger is more spread out)
+#define PAGE_HEIGHT (DELTA_XY * ROWS_PER_PAGE) 
 
-#define DELTA_XY 8//WINDOW_WIDTH/NUMCOLS
-#define PADDING_WINDOW_X 70
-#define PADDING_WINDOW_Y 50
-
-#define PAGE_HEIGHT DELTA_XY * ROWS_PER_PAGE //will need to add some spacing
 
 //-----------------------------------Global Variables------------------------------------
 
@@ -56,25 +55,7 @@ extern "C" {
 }
 #endif
 
-void setRect_Param(uint32_t x, uint32_t y) {
-	if (x >= NUMCOLS) return;
-	if (x < 0) return;
 
-	if (y >= NUMROWS) return;
-	if (y < 0) return;
-
-	uint32_t p=0;
-	//map 2d coordinates to rectange array Pixels
-	if (y < 32) p = 3;
-	if (y < 24) p = 2;
-	if (y < 16) p = 1;
-	if (y < 8) p = 0;
-
-	//Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setFillColor(sf::Color::Red);
-	//Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineThickness(10);
-	Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineColor(sf::Color::Red);
-	
-}
 
 
 
@@ -86,6 +67,50 @@ bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS) {
 		}
 	}
 	return false;
+}
+
+int mapXYtoRect(uint32_t x, uint32_t y) {
+	if (x >= NUMCOLS) return 0;
+	if (x < 0) return 0;
+
+	if (y >= NUMROWS) return 0;
+	if (y < 0) return 0;
+
+	uint32_t p = 0;
+	//map 2d coordinates to rectange array Pixels
+	if (y < ROWS_PER_PAGE * 4) p = 3;
+	if (y < ROWS_PER_PAGE * 3) p = 2;
+	if (y < ROWS_PER_PAGE * 2) p = 1;
+	if (y < ROWS_PER_PAGE * 1) p = 0;
+
+	//not sure why I need to shift the x axis back by p.
+	return ((p * PIXELS_PER_PAGE) + ((x - p) * ROWS_PER_PAGE) + y);
+}
+
+sf::Vector2i mapRecttoXY(uint32_t i) {
+	uint32_t p, x, y;
+	if (i < PIXELS_PER_PAGE * 4) p = 3;
+	if (i < PIXELS_PER_PAGE * 3) p = 2;
+	if (i < PIXELS_PER_PAGE * 2) p = 1;
+	if (i < PIXELS_PER_PAGE * 1) p = 0;
+
+	//this is ugly but works
+	x = i / ROWS_PER_PAGE;
+	y = (i % x) + (p*ROWS_PER_PAGE);
+	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
+	return sf::Vector2i(x, y);
+}
+
+void setRect_Param(uint32_t x, uint32_t y) {
+	if (x >= NUMCOLS) return;
+	if (x < 0) return;
+
+	if (y >= NUMROWS) return;
+	if (y < 0) return;
+
+	//Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setFillColor(sf::Color::Red);
+	//Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineThickness(10);
+	Pixels[mapXYtoRect(x, y)].setOutlineColor(sf::Color::Red);
 }
 
 
@@ -166,15 +191,28 @@ int main()
 	//Super Loop Begin
 	while (window->isOpen())
 	{
-		
+
+
+
 		//-----------------------------------------------------Get Mouse & Keyboard inputs----------------------------------------------------------------|
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-			//Do Stuff	
-		}
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-			//Do Stuff
+		//Mouse Drawing - Writes to the SSD1306_Buffer so that we can Export the buffer to save bitmaps!
+		mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+		for (int i = 0; i < NUM_PIXELS; i++) {
+			if (isMouseOverRect(&mousePosf, &Pixels[i])) {
+				Pixels[i].setOutlineColor(sf::Color::Green);
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
+						SSD1306_DrawPixel(mapRecttoXY(i).x, mapRecttoXY(i).y, SSD1306_COLOR_WHITE);
+				}
+				if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+					SSD1306_DrawPixel(mapRecttoXY(i).x, mapRecttoXY(i).y, SSD1306_COLOR_BLACK);
+				}
+			}
+			else {
+				Pixels[i].setOutlineColor(outlineColor);
+			}
 		}
 
+		
 		//mouse wheel input only? not sure how this 'event' works
 		sf::Event event;
 		while (window->pollEvent(event)) {
@@ -234,17 +272,12 @@ int main()
 
 
 //---------------------------------------Start Embedded Code Logic
-
-		if (Dpad & DPAD_RIGHT) Pixel_x++;
-		if (Dpad & DPAD_LEFT) Pixel_x--;
-		if (Dpad & DPAD_UP) Pixel_y--;
-		if (Dpad & DPAD_DOWN) Pixel_y++;
-
-		//for (auto Pixel : Pixels) Pixel.setOutlineColor(outlineColor);
-		for(int i=0; i<NUM_PIXELS; i++) Pixels[i].setOutlineColor(outlineColor);
-		setRect_Param(Pixel_x, Pixel_y);
-
-		SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
+		//MCU drawing code using Trackball
+		if ((Dpad & DPAD_RIGHT) && Pixel_x < NUMCOLS-1) Pixel_x++;
+		if ((Dpad & DPAD_LEFT) && Pixel_x > 0) Pixel_x--;
+		if ((Dpad & DPAD_UP) && Pixel_y > 0) Pixel_y--;
+		if ((Dpad & DPAD_DOWN) && Pixel_y < NUMROWS-1) Pixel_y++;
+	
 		if (!Button) {
 			if (!SSD1306_getPixel(Pixel_x, Pixel_y)) {
 				SSD1306_DrawPixel(Pixel_x, Pixel_y, SSD1306_COLOR_WHITE);
@@ -253,23 +286,22 @@ int main()
 				SSD1306_DrawPixel(Pixel_x, Pixel_y, SSD1306_COLOR_BLACK);
 			}
 		}
-		SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
+		//END MCU drawing code using Trackball
 
+		/*SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 		count++;
-		SSD1306_Puti(5, 5, count, 5);
+		SSD1306_Puti(5, 5, count, 5);*/
 
+		SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
 //---------------------------------------End Embedded Code
 
-
-
-
-
-
-
-		//TODO: The Reverse of this could be done to make a Bitmap Maker function
 		
-		//Set the rectangle Fill every loop from the local buffer
-		//This must be called every loop
+		//update OutlineColors (used for making selected Oled Pixel easier)
+		//for (int i = 0; i < NUM_PIXELS; i++) Pixels[i].setOutlineColor(outlineColor);
+		setRect_Param(Pixel_x, Pixel_y);
+		
+
+		//This must be called every loop to update the rectange shapes fillColor
 		for (int i = 0; i < 512; i++) {
 			for (int b = 0; b < 8; b++) {
 				if (PixelsDispBuffer[i] & (1 << b)) {
@@ -280,20 +312,7 @@ int main()
 				}
 			}
 		}
-
-		//testing mouse interaction
-		/*
-		mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-		for (int i = 0; i < NUM_PIXELS; i++) {
-			if (isMouseOverRect(&mousePosf, &Pixels[i])) {
-				Pixels[i].setOutlineThickness(2);
-				break;
-			}
-			else {
-				Pixels[i].setOutlineThickness(1);
-			}
-		}
-		*/
+		
 		for (auto Pixel : Pixels) window->draw(Pixel);
 		window->display();
 	}//end update loop
