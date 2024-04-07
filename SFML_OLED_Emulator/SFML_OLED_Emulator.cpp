@@ -27,7 +27,7 @@ Draw subsized bitmaps at top left origin. extract the array from the console...f
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
-//#include <thread>
+#include <chrono>
 #include <Windows.h>    
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,7 +39,7 @@ Draw subsized bitmaps at top left origin. extract the array from the console...f
 //SFML Window Size
 #define WINDOW_WIDTH (1920-750)
 #define WINDOW_HEIGHT (1080-400)
-
+#define FPS 60
 //adjust where the "OLED' is placed reletive to the window Origin
 #define PADDING_WINDOW_X 70
 #define PADDING_WINDOW_Y 50
@@ -104,7 +104,7 @@ int main()
 {	
 	window = new sf::RenderWindow (sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "SFML OLED Emulator");
 	window->setMouseCursorVisible(true);
-	window->setFramerateLimit(60);
+	window->setFramerateLimit(FPS);
 	window->setActive(true);
 
 	sf::Font font;
@@ -176,14 +176,35 @@ int main()
 		BTN_DOWN = 0x00,
 	}TrackBallButton;
 
+	typedef enum {
+		LOCKED = 0x01,
+		NOTLOCKED = 0x00,
+	}TrackBallLockState;
+
+	typedef struct {
+		bool up = false;
+		bool down = false;
+		bool left = false;
+		bool right = false;
+		bool button = false;
+	}TrackBallLock_t;
+
+	TrackBallLock_t TB_lock;
+
 	uint8_t Dpad = DPAD_READY;
 	bool Button = BTN_UP; //active low button
 
+	
 	//This is just to keep track of the trackball "position" based on user input
 	uint32_t Pixel_x = 0;
 	uint32_t Pixel_y = 0;
 
 	int count = 0;
+	
+	//trying to keep track of time
+	#define ZERO_VEL 0
+	sf::Vector2f velocity = {0,0};
+	float TestDeltaT = 1/FPS;
 //---------------------------------------End Embedded Code Variables
 
 
@@ -192,7 +213,7 @@ int main()
 	SSD1306_Clear(); //clear oled display buffer
 	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, SSD1306_COLOR_WHITE); //boot splash screen
 	SSD1306_GotoXY(0, 0);
-	SSD1306_DrawBitmap(5, 5, Bat, 16, 8, SSD1306_COLOR_WHITE); //boot splash screen
+	SSD1306_DrawBitmap(128-16, 0, Bat, 16, 8, SSD1306_COLOR_WHITE); //boot splash screen
 	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 	//SSD1306_Puti(5, 5, 9999, 5);	
 	//SSD1306_GotoXY(0, 0);
@@ -203,6 +224,8 @@ int main()
 	//Super Loop Begin
 	while (window->isOpen())
 	{
+		auto startTime = std::chrono::high_resolution_clock::now();
+
 		//-----------------------------------------------------Get Mouse & Keyboard inputs----------------------------------------------------------------|
 		//Mouse Drawing - Writes to the SSD1306_Buffer so that we can Export the buffer to save bitmaps!
 		mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
@@ -265,47 +288,58 @@ int main()
 			loadFile();
 		}
 
-#define SLEEP_TIME 0
+#define SLEEP_TIME 50
 		//Get the Emulated TrackBall
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && TB_lock.button == NOTLOCKED) {// && button lock set
+			TB_lock.button = LOCKED;
 			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Button = BTN_DOWN;
 			TB->setFillColor(sf::Color::Red);
 		}
-		else {
+		else { //Button lock release
+			TB_lock.button = NOTLOCKED;
 			Button = BTN_UP;
-			TB->setFillColor(sf::Color(0x50, 0x50, 0x50));
+			TB->setFillColor(sf::Color(0x255, 0x255, 0x255));
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) && TB_lock.up == NOTLOCKED) {
+			//velocity.y -= 0.1f;
+			TB_lock.up = LOCKED;
+			if(sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_UP;
 		}
 		else {
+			TB_lock.up = NOTLOCKED;
 			Dpad &= ~(DPAD_UP);
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) && TB_lock.down == NOTLOCKED) {
+			TB_lock.down = LOCKED;
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_DOWN;
 		}
 		else {
+			TB_lock.down = NOTLOCKED;
 			Dpad &= ~(DPAD_DOWN);
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && TB_lock.left == NOTLOCKED) {
+			TB_lock.left = LOCKED;
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_LEFT;
 		}
 		else {
+			TB_lock.left = NOTLOCKED;
 			Dpad &= ~(DPAD_LEFT);
 		}
 
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) && TB_lock.right == NOTLOCKED) {
+			TB_lock.right = LOCKED;
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_RIGHT;
 		}
 		else {
+			TB_lock.right = NOTLOCKED;
 			Dpad &= ~(DPAD_RIGHT);
 		}
 
@@ -322,6 +356,7 @@ int main()
 			Dpad = DPAD_READY;
 		}
 	
+
 
 
 //---------------------------------------Start Embedded Code Logic
@@ -381,6 +416,12 @@ int main()
 		for (auto led : LED_RGBW) window->draw(led);
 		window->draw(*DebugText);
 		window->display();
+		
+		auto stopTime = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime);
+		TestDeltaT = (float)duration.count() / 1000.f;
+		printf("Delta T %f\r\n", TestDeltaT);
+		
 	}//end update loop
 
 	return 0;
