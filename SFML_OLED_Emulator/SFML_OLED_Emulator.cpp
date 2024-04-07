@@ -18,6 +18,10 @@ Draw subsized bitmaps at top left origin. extract the array from the console...f
 
 */
 
+#include <iomanip>
+//#include <iostream>
+#include <locale>
+
 #include <fstream> 
 #include <iostream>
 #include <SFML/System.hpp>
@@ -328,7 +332,7 @@ int main()
 	
 		if (!Button) {
 		//if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
-	//		while (sf::Keyboard::isKeyPressed(sf::Keyboard::Space));
+		//while (sf::Keyboard::isKeyPressed(sf::Keyboard::Space));
 			if (!SSD1306_getPixel(Pixel_x, Pixel_y)) {
 				SSD1306_DrawPixel(Pixel_x, Pixel_y, SSD1306_COLOR_WHITE);
 			}
@@ -388,62 +392,61 @@ int main()
 
 
 
+//--------------------------------------User Function Definitions--------------------------------------
 
 int saveFile() {
 	int size = BUFFER_SIZE; //num bytes to write
-
 	// Open for Write
 	std::ofstream outfile("OLED_bitmap.txt", std::ios::binary | std::ios::out);
 	if (!outfile.is_open()) {
 		std::cerr << "Failed to open file for writing.\n";
 		return 1;
 	}
-
+	printf("Saving bitmap for Emulator\r\n");
 	outfile.width(1);
-	printf("Opening File for Write\r\n");
+	outfile.write((char*)SSD1306_Buffer, size); // Writing the array elements to the file 
+	outfile.close(); // Closing the file 
+	
+
+	//----------------------Code File----------------------
+	// Open bitmap hex array for Write
+	std::ofstream outfileCode("OLED_bitmap_code.txt");
+	if (!outfileCode.is_open()) {
+		std::cerr << "Failed to open file for writing.\n";
+		return 1;
+	}
 	// Writing the array elements to the file 
-	outfile.write((char*)SSD1306_Buffer, size);
-	printf("Saving File \r\n");
-	// Closing the file 
-	outfile.close();
+	outfileCode << "const unsigned char Bitmap [] = { \r";
+	char buf[32];
+	for (int i = 0; i < size; i++) {
+		sprintf_s(buf, 32, "0x%02x, ", SSD1306_Buffer[i]);
+		outfileCode << buf;
+		if (!((i + 1) % 16)) outfileCode << "\r";
+	}
+	outfileCode << "};\r";
+	printf("Saving bitmap for MCU code \r\n");
+	outfileCode.close();
 }
-
-
 
 
 int loadFile() {
 	int size = BUFFER_SIZE;
-	printf("Opening File for Read\r\n");
-	// Opening the file in read mode 
-	std::ifstream infile("OLED_bitmap.txt", std::ios::binary | std::ios::in);
-
-	//read the array
-	infile.read((char*)SSD1306_Buffer, size);
-	// Closing the file 
-	infile.close();
+	printf("\r\nOpening File for Read\r\n");
+	std::ifstream infile("OLED_bitmap.txt", std::ios::binary | std::ios::in); // Opening the file in read mode 
+	infile.read((char*)SSD1306_Buffer, size); //read the array
+	infile.close(); // Closing the file
 
 	// Displaying the loaded contents to the Console
-	std::cout << "SSD1306_Buffer[] elements: \r\n";
+	printf("SSD1306_Buffer[] Loaded: \r\n");
 	for (int i = 0; i < size; i++) {
 		printf("%2x ", SSD1306_Buffer[i]);
 		if (!((i + 1) % 32)) printf("\r\n");
 	}
-	std::cout << std::endl;
-	std::cout << std::endl;
-
-	// Displaying the loaded contents to the Console for Copy Paste
-	std::cout << "const unsigned char Boot [] = { \r\n";
-	for (int i = 0; i < size; i++) {
-		printf("0x%02x, ", SSD1306_Buffer[i]);
-		if (!((i + 1) % 16)) printf("\r\n");
-	}
-	std::cout << std::endl;
-	std::cout << "};\r\n";
-
 	return 0;
 }
 
-//--------------------------------------User Function Definitions--------------------------------------
+
+
 bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS) {
 	if (mousePosition->x > RS->getPosition().x && mousePosition->x < RS->getPosition().x + RS->getSize().x) {
 		if (mousePosition->y > RS->getPosition().y && mousePosition->y < RS->getPosition().y + RS->getSize().y) {
@@ -475,7 +478,7 @@ sf::Vector2i mapRecttoXY(uint32_t i) {
 }
 
 
-
+//RGBW LED functions
 void setLED(int idx) {
 	if (idx < 0 || idx>3) return;
 	switch (idx) {
