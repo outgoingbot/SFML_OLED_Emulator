@@ -23,7 +23,7 @@
 #include "ssd1306.h"
 
 
-extern uint8_t PixelsDispBuffer[512];
+extern uint8_t PixelsDispBuffer[BUFFER_SIZE];
 
 
 /* Write command */
@@ -168,10 +168,9 @@ void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int1
 
 	//then add the ability to index to draw a Sub sized image into the display buffer
 
-	for (int16_t i = 0; i < 512; i++)
+	for (int16_t i = 0; i < BUFFER_SIZE; i++)
 	{
 		SSD1306_Buffer[i] = *(bitmap + i);
-	
 	}
 }
 

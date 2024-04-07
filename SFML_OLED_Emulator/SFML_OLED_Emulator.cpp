@@ -41,6 +41,8 @@ ctrl + l load the bitmap (byte array) to the display ssd1306_buffer[] (non-local
 #define NUMCOLS 128
 #define NUMROWS 32
 #define NUM_PAGES 4
+#define BUFFER_SIZE  (NUMCOLS*NUMROWS / 8)
+
 #define NUM_PIXELS (NUMCOLS*NUMROWS) //used rectange vector
 #define ROWS_PER_PAGE (NUMROWS/NUM_PAGES)
 #define PIXELS_PER_PAGE (ROWS_PER_PAGE * NUMCOLS)
@@ -72,7 +74,7 @@ sf::Color offColor = sf::Color::Black;
 
 #ifdef __cplusplus
 extern "C" {
-	uint8_t PixelsDispBuffer[512]; //must match the SSD1306 Buffer size
+	uint8_t PixelsDispBuffer[BUFFER_SIZE]; //must match the SSD1306 Buffer size
 }
 #endif
 
@@ -84,20 +86,11 @@ int mapXYtoRect(uint32_t x, uint32_t y);
 sf::Vector2i mapRecttoXY(uint32_t i);
 void setLED(int idx);
 void clearLED(int idx);
+void setRect_Param(uint32_t x, uint32_t y);
 //function prototypes
 
 
-void setRect_Param(uint32_t x, uint32_t y) {
-	if (x >= NUMCOLS) return;
-	if (x < 0) return;
 
-	if (y >= NUMROWS) return;
-	if (y < 0) return;
-
-	//Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setFillColor(sf::Color::Red);
-	//Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineThickness(10);
-	Pixels[mapXYtoRect(x, y)].setOutlineColor(sf::Color::Red);
-}
 
 
 int main()
@@ -142,7 +135,7 @@ int main()
 	mousePosf = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
 	
 	//zero out the Pixel Display buffer
-	for (int i = 0; i < 512; i++) PixelsDispBuffer[i] = 0;
+	for (int i = 0; i < BUFFER_SIZE; i++) PixelsDispBuffer[i] = 0;
 
 	//Push Pixels onto vector array
 	for (int i = 0; i < NUM_PIXELS; i++) {
@@ -339,8 +332,9 @@ int main()
 				SSD1306_DrawPixel(Pixel_x, Pixel_y, SSD1306_COLOR_BLACK);
 			}
 		}
-		//printf("%i , %i \r\n", Pixel_x, Pixel_y);
 		//END MCU drawing code using Trackball
+		
+		/*write menu code here*/
 		
 		/*count++;
 		SSD1306_Puti(5, 5, count, 5);*/
@@ -350,15 +344,15 @@ int main()
 
 		//---------------------UPDATE NON-MCU UI Elements
 		//update OutlineColors (used for making selected Oled Pixel easier)
-		//for (int i = 0; i < NUM_PIXELS; i++) Pixels[i].setOutlineColor(outlineColor);
 		setRect_Param(Pixel_x, Pixel_y);
+		//show keyboard higlighted pixel location (x,y)
 		char c[32];
 		sprintf_s(c, 32, "(%i , %i)", Pixel_x, Pixel_y);
 		DebugText->setString(c);
 		//---------------------UPDATE NON-MCU UI Elements
 
 		//This must be called every loop to update the rectange shapes fillColor
-		for (int i = 0; i < 512; i++) {
+		for (int i = 0; i < BUFFER_SIZE; i++) {
 			for (int b = 0; b < 8; b++) {
 				if (PixelsDispBuffer[i] & (1 << b)) {
 					Pixels[(i * 8) + b].setFillColor(onColor);
@@ -368,19 +362,6 @@ int main()
 				}
 			}
 		}
-		static int idx = 0;
-		SSD1306_DrawPixel(mapRecttoXY(idx).x, mapRecttoXY(idx).y, SSD1306_COLOR_WHITE);
-		SSD1306_UpdateScreen();
-		idx++;
-		if (idx == PIXELS_PER_PAGE-1) {
-			SSD1306_Clear();
-			//SSD1306_UpdateScreen();
-		}
-		if (idx > NUM_PIXELS) {
-			idx = 0;
-			SSD1306_Clear();
-		}
-		
 		window->clear();
 		for (auto Pixel : Pixels) window->draw(Pixel);
 		window->draw(*TBpad);
@@ -402,7 +383,7 @@ int main()
 
 
 int saveFile() {
-	int size = 512; //num bytes to write
+	int size = BUFFER_SIZE; //num bytes to write
 
 	// Open for Write
 	std::ofstream outfile("OLED_bitmap.txt", std::ios::binary | std::ios::out);
@@ -424,7 +405,7 @@ int saveFile() {
 
 
 int loadFile() {
-	int size = 512;
+	int size = BUFFER_SIZE;
 	printf("Opening File for Read\r\n");
 	// Opening the file in read mode 
 	std::ifstream infile("OLED_bitmap.txt", std::ios::binary | std::ios::in);
@@ -483,24 +464,19 @@ int mapXYtoRect(uint32_t x, uint32_t y) {
 	return ((p * PIXELS_PER_PAGE) + ((x - p) * ROWS_PER_PAGE) + y);
 }
 
-//Todo: there is a Bug here with the first byte (oled pixels x=0, y=0 to 7)
+
+//given an rectangle vector index #, return the x,y position
 sf::Vector2i mapRecttoXY(uint32_t i) {
+	if (i > BUFFER_SIZE*8) return sf::Vector2i(0, 0);
 	uint32_t p, x, y;
 	if (i < PIXELS_PER_PAGE * 4) p = 3;
 	if (i < PIXELS_PER_PAGE * 3) p = 2;
 	if (i < PIXELS_PER_PAGE * 2) p = 1;
 	if (i < PIXELS_PER_PAGE * 1) p = 0;
 
-	//TODO: this has a bug. and is ugly and doesnt work right either
-	//this is ugly but works
-	x = i / ROWS_PER_PAGE;
-	if (x > 0) { //hack for when x = 0;
-		y = (i % x) + (p*ROWS_PER_PAGE);
-	}
-	else {
-		y = i;
-	}
 	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
+	y = (i % 8) + (p*ROWS_PER_PAGE);
+	printf("x:%i , y:%i \r\n", x, y);
 	return sf::Vector2i(x, y);
 }
 
@@ -544,4 +520,18 @@ void clearLED(int idx) {
 		LED_RGBW[3].setFillColor(outlineColor);
 		break;
 	}
+}
+
+
+//when the mouse is over a rectangle Do something
+void setRect_Param(uint32_t x, uint32_t y) {
+	if (x >= NUMCOLS) return;
+	if (x < 0) return;
+
+	if (y >= NUMROWS) return;
+	if (y < 0) return;
+
+	//Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setFillColor(sf::Color::Red);
+	//Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineThickness(10);
+	Pixels[mapXYtoRect(x, y)].setOutlineColor(sf::Color::Red); //change color of border
 }
