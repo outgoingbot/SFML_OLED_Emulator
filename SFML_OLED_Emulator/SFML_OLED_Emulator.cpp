@@ -190,7 +190,7 @@ int main()
 //------------------------------------Start Embedded Splash
 	SSD1306_Init();
 	SSD1306_Clear(); //clear oled display buffer
-	//SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
+	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, SSD1306_COLOR_WHITE); //boot splash screen
 	SSD1306_GotoXY(0, 0);
 	SSD1306_DrawBitmap(5, 5, Bat, 16, 8, SSD1306_COLOR_WHITE); //boot splash screen
 	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
