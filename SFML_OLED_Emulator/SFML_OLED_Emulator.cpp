@@ -188,7 +188,7 @@ int main()
 	SSD1306_Clear(); //clear oled display buffer
 	//SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
 	SSD1306_GotoXY(0, 0);
-	SSD1306_DrawBitmap2(5, 5, Bat, 16, 8, 1); //boot splash screen
+	SSD1306_DrawBitmap(5, 5, Bat, 16, 8, SSD1306_COLOR_WHITE); //boot splash screen
 	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 	//SSD1306_Puti(5, 5, 9999, 5);	
 	//SSD1306_GotoXY(0, 0);
@@ -339,13 +339,7 @@ int main()
 		//END MCU drawing code using Trackball
 		
 		/*write menu code here*/
-		static uint8_t xPos = 0;
-		
-		static uint8_t yPos = 0;
-		yPos = 15 * (sinf(xPos/10)+1);
-		SSD1306_Clear();
-		SSD1306_DrawBitmap2((uint16_t)(xPos%128), (uint16_t) (yPos), Bat, 16, 8, 1); //boot splash screen
-		xPos++;
+	
 
 		/*
 		count++;
@@ -459,20 +453,12 @@ bool isMouseOverRect(sf::Vector2f* mousePosition, sf::RectangleShape* RS) {
 	return false;
 }
 
+
 int mapXYtoRect(uint32_t x, uint32_t y) {
-	if (x >= NUMCOLS) return 0;
-	if (x < 0) return 0;
-
-	if (y >= NUMROWS) return 0;
-	if (y < 0) return 0;
-
-	uint32_t p = 0;
+	if (x >= NUMCOLS || x < 0) return 0;
+	if (y >= NUMROWS || y < 0) return 0;
 	//map 2d coordinates to rectange array Pixels
-	if (y < ROWS_PER_PAGE * 4) p = 3;
-	if (y < ROWS_PER_PAGE * 3) p = 2;
-	if (y < ROWS_PER_PAGE * 2) p = 1;
-	if (y < ROWS_PER_PAGE * 1) p = 0;
-
+	 uint32_t p = y / ROWS_PER_PAGE;
 	//not sure why I need to shift the x axis back by p.
 	return ((p * PIXELS_PER_PAGE) + ((x - p) * ROWS_PER_PAGE) + y);
 }
@@ -480,16 +466,11 @@ int mapXYtoRect(uint32_t x, uint32_t y) {
 
 //given an rectangle vector index #, return the x,y position
 sf::Vector2i mapRecttoXY(uint32_t i) {
-	if (i > BUFFER_SIZE*8) return sf::Vector2i(0, 0);
+	if (i > BUFFER_SIZE*8 || i < 0) return sf::Vector2i(0, 0);
 	uint32_t p, x, y;
-	if (i < PIXELS_PER_PAGE * 4) p = 3;
-	if (i < PIXELS_PER_PAGE * 3) p = 2;
-	if (i < PIXELS_PER_PAGE * 2) p = 1;
-	if (i < PIXELS_PER_PAGE * 1) p = 0;
-
+	p = i / PIXELS_PER_PAGE;
 	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
 	y = (i % 8) + (p*ROWS_PER_PAGE);
-	//printf("x:%i , y:%i \r\n", x, y); //debug mapping to console
 	return sf::Vector2i(x, y);
 }
 
@@ -538,11 +519,8 @@ void clearLED(int idx) {
 
 //when the mouse is over a rectangle Do something
 void setRect_Param(uint32_t x, uint32_t y) {
-	if (x >= NUMCOLS) return;
-	if (x < 0) return;
-
-	if (y >= NUMROWS) return;
-	if (y < 0) return;
+	if (x >= NUMCOLS || x < 0) return;
+	if (y >= NUMROWS || y < 0) return;
 
 	//Pixels[(p * PIXELS_PER_PAGE) + (x * ROWS_PER_PAGE) + y].setFillColor(sf::Color::Red);
 	//Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineThickness(10);

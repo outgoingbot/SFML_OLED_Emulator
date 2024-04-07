@@ -2,6 +2,10 @@
  * original author:  Tilen Majerle<tilen@majerle.eu>
  * modification for STM32f10x: Alexander Lutsai<s.lyra@ya.ru>
 
+
+ Izzle: Added a SSD1306_COLOR_t getPixel(x,y) and changed the drawBitmap() function.
+ //these functions need to be copied over to the STM32 Version of this file
+
    ----------------------------------------------------------------------
    	Copyright (C) Alexander Lutsai, 2016
     Copyright (C) Tilen Majerle, 2015
@@ -136,7 +140,9 @@ void SSD1306_InvertDisplay (int i)
 
 }
 
-
+/*
+this was obviously ripped from the adafruit GFX library by the creator of this file.
+Dont like the way it draws. the array order is
 void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
 {
 
@@ -159,27 +165,25 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
         }
     }
 }
+*/
 
-
-void SSD1306_DrawBitmap2(int16_t Px, int16_t Py, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
+//this is the new method that works with the SFML_OLED_EMULATOR
+void SSD1306_DrawBitmap(int16_t Px, int16_t Py, const unsigned char* bitmap, int16_t w, int16_t h, SSD1306_COLOR_t color)
 {
 	uint16_t idx = 0;
-	uint8_t b = 0;
-	uint8_t c = 0;
+	uint8_t b = 0; //indexes the bits in each byte
 	
 	for (int16_t x = Px; x < Px+w; x++) { //loop thru horizonal (x max 128)
 		for (int16_t y = Py; y < Py+h; y++) { //loop thru vertical (y max 32)
 			idx = (128 * ((y-Py)/8)) + (x-Px); //byte index
 			if (bitmap[idx] & (1 << (b % 8))) { //check if bit is set
-				c = 1;
+				SSD1306_DrawPixel(x, y, color); //draw the color
 			}
 			else {
-				c = 0;
+				SSD1306_DrawPixel(x, y, !color); //draw the !color
 			}
-			SSD1306_DrawPixel(x, y, c);
 			b++;
 		}
-
 	}
 }
 
@@ -315,6 +319,8 @@ void SSD1306_Fill(SSD1306_COLOR_t color) {
 	/* Set memory */
 	memset(SSD1306_Buffer, (color == SSD1306_COLOR_BLACK) ? 0x00 : 0xFF, sizeof(SSD1306_Buffer));
 }
+
+
 SSD1306_COLOR_t SSD1306_getPixel(uint16_t x, uint16_t y) {
 	//SSD1306_COLOR_t c;
 
