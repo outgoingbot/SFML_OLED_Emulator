@@ -476,7 +476,7 @@ sf::Vector2i mapRecttoXY(uint32_t i) {
 
 	x = (i - (p * PIXELS_PER_PAGE)) / ROWS_PER_PAGE;
 	y = (i % 8) + (p*ROWS_PER_PAGE);
-	printf("x:%i , y:%i \r\n", x, y);
+	//printf("x:%i , y:%i \r\n", x, y); //debug mapping to console
 	return sf::Vector2i(x, y);
 }
 
