@@ -160,22 +160,28 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
     }
 }
 
-//changing how the drawbitmap works
-void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
+
+void SSD1306_DrawBitmap2(int16_t Px, int16_t Py, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
 {
-	//Todo: oled draw bitmap change strructure
-	// 1) first just copy the whole array into the SSD1306_Buffer[] <--Done
+	uint16_t idx = 0;
+	uint8_t b = 0;
+	uint8_t c = 0;
+	
+	for (int16_t x = Px; x < w; x++) { //loop thru horizonal (x max 128)
+		for (int16_t y = Py; y < h; y++) { //loop thru vertical (y max 32)
+			idx = (128 * (y/8)) + x; //byte index
+			if (bitmap[idx] & (1 << (b % 8))) {
+				c = 1;
+			}
+			else {
+				c = 0;
+			}
+			SSD1306_DrawPixel(x, y, c);
+			b++;
+		}
 
-	//then add the ability to index to draw a Sub sized image into the display buffer
-
-	for (int16_t i = 0; i < BUFFER_SIZE; i++)
-	{
-		SSD1306_Buffer[i] = *(bitmap + i);
 	}
 }
-
-
-
 
 
 /*Izzle
