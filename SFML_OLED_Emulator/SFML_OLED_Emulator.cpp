@@ -108,16 +108,15 @@ int main()
 	window->setActive(true);
 
 	sf::Font font;
-	if (!font.loadFromFile("../res/Pumpkin_Pancakes.ttf")) {
+	if (!font.loadFromFile("../res/arial.ttf")) {
 		printf("Error loading Font");
 		system("pause");
 	}
 	// select the font
 	DebugText->setFont(font); // font is a sf::Font
-	DebugText->setPosition(sf::Vector2f(10, 500));
-							  // set the string to display
-	DebugText->setString("Empty ");
-
+	DebugText->setPosition(sf::Vector2f(10, 10));
+	DebugText->setString("Empty ");// set the string to display
+	DebugText->setCharacterSize(20);
 	//Setup the TrackBall
 	TBpad->setFillColor(sf::Color(0x20,0x20,0x20));
 	TBpad->setRadius(100);
@@ -191,7 +190,7 @@ int main()
 //------------------------------------Start Embedded Splash
 	SSD1306_Init();
 	SSD1306_Clear(); //clear oled display buffer
-	SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
+	//SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
 	SSD1306_GotoXY(0, 0);
 	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 	//SSD1306_Puti(5, 5, 9999, 5);	
@@ -264,9 +263,10 @@ int main()
 			loadFile();
 		}
 
-
+#define SLEEP_TIME 25
 		//Get the Emulated TrackBall
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Button = BTN_DOWN;
 			TB->setFillColor(sf::Color::Red);
 		}
@@ -276,6 +276,7 @@ int main()
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_UP;
 		}
 		else {
@@ -283,6 +284,7 @@ int main()
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_DOWN;
 		}
 		else {
@@ -290,6 +292,7 @@ int main()
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_LEFT;
 		}
 		else {
@@ -297,6 +300,7 @@ int main()
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_RIGHT;
 		}
 		else {
@@ -344,11 +348,14 @@ int main()
 		SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
 //---------------------------------------End Embedded Code
 
-		
+		//---------------------UPDATE NON-MCU UI Elements
 		//update OutlineColors (used for making selected Oled Pixel easier)
 		//for (int i = 0; i < NUM_PIXELS; i++) Pixels[i].setOutlineColor(outlineColor);
 		setRect_Param(Pixel_x, Pixel_y);
-		
+		char c[32];
+		sprintf_s(c, 32, "(%i , %i)", Pixel_x, Pixel_y);
+		DebugText->setString(c);
+		//---------------------UPDATE NON-MCU UI Elements
 
 		//This must be called every loop to update the rectange shapes fillColor
 		for (int i = 0; i < 512; i++) {
@@ -361,17 +368,37 @@ int main()
 				}
 			}
 		}
+		static int idx = 0;
+		SSD1306_DrawPixel(mapRecttoXY(idx).x, mapRecttoXY(idx).y, SSD1306_COLOR_WHITE);
+		SSD1306_UpdateScreen();
+		idx++;
+		if (idx == PIXELS_PER_PAGE-1) {
+			SSD1306_Clear();
+			//SSD1306_UpdateScreen();
+		}
+		if (idx > NUM_PIXELS) {
+			idx = 0;
+			SSD1306_Clear();
+		}
 		
+		window->clear();
 		for (auto Pixel : Pixels) window->draw(Pixel);
 		window->draw(*TBpad);
 		window->draw(*TB);
 		for (auto led : LED_RGBW) window->draw(led);
-		//window->draw(*DebugText);
+		window->draw(*DebugText);
 		window->display();
 	}//end update loop
 
 	return 0;
 }
+//---------------------------END MAIN
+
+
+
+
+
+
 
 
 int saveFile() {
@@ -464,6 +491,7 @@ sf::Vector2i mapRecttoXY(uint32_t i) {
 	if (i < PIXELS_PER_PAGE * 2) p = 1;
 	if (i < PIXELS_PER_PAGE * 1) p = 0;
 
+	//TODO: this has a bug. and is ugly and doesnt work right either
 	//this is ugly but works
 	x = i / ROWS_PER_PAGE;
 	if (x > 0) { //hack for when x = 0;
