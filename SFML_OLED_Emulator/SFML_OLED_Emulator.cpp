@@ -254,11 +254,12 @@ int main()
 		//escape will erase the SSD1306_buffer
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) SSD1306_Clear();
 
+		//save the buffer to a file
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
 			while (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::S)); //shitty way to not spam save. will add a lock later
 			saveFile();
 		}
-
+		//load the buffer from a file
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
 			while (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::L)); //shitty way to not spam save. will add a lock later
 			loadFile();
@@ -345,22 +346,22 @@ int main()
 		/*write menu code here*/
 	
 
-		/*
-		count++;
-		SSD1306_Puti(5, 5, count, 5);
-		*/
-
+		//count++;
+		//SSD1306_Puti(5, 5, count, 5);
+		
 		SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
 //---------------------------------------End Embedded Code
 
-		//---------------------UPDATE NON-MCU UI Elements
+
+//---------------------UPDATE NON-MCU UI Elements
 		//update OutlineColors (used for making selected Oled Pixel easier)
 		setRect_Param(Pixel_x, Pixel_y);
 		//show keyboard higlighted pixel location (x,y)
 		char c[32];
 		sprintf_s(c, 32, "(%i , %i)", Pixel_x, Pixel_y);
 		DebugText->setString(c);
-		//---------------------UPDATE NON-MCU UI Elements
+//---------------------UPDATE NON-MCU UI Elements
+
 
 		//This must be called every loop to update the rectange shapes fillColor
 		for (int i = 0; i < BUFFER_SIZE; i++) {
