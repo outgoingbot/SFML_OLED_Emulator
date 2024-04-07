@@ -167,10 +167,10 @@ void SSD1306_DrawBitmap2(int16_t Px, int16_t Py, const unsigned char* bitmap, in
 	uint8_t b = 0;
 	uint8_t c = 0;
 	
-	for (int16_t x = Px; x < w; x++) { //loop thru horizonal (x max 128)
-		for (int16_t y = Py; y < h; y++) { //loop thru vertical (y max 32)
-			idx = (128 * (y/8)) + x; //byte index
-			if (bitmap[idx] & (1 << (b % 8))) {
+	for (int16_t x = Px; x < Px+w; x++) { //loop thru horizonal (x max 128)
+		for (int16_t y = Py; y < Py+h; y++) { //loop thru vertical (y max 32)
+			idx = (128 * ((y-Py)/8)) + (x-Px); //byte index
+			if (bitmap[idx] & (1 << (b % 8))) { //check if bit is set
 				c = 1;
 			}
 			else {

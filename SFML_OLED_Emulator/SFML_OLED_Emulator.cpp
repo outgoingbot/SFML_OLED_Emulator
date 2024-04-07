@@ -13,6 +13,9 @@ LShift + 1,2,3,4 turn OFF RGBW Leds
 ctrl + s save the bitmap (byte array) to a file on the system
 ctrl + l load the bitmap (byte array) to the display ssd1306_buffer[] (non-local) on the system
 
+Instructions:
+Draw subsized bitmaps at top left origin. extract the array from the console...for now
+
 */
 
 #include <fstream> 
@@ -183,9 +186,9 @@ int main()
 //------------------------------------Start Embedded Splash
 	SSD1306_Init();
 	SSD1306_Clear(); //clear oled display buffer
-	SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
+	//SSD1306_DrawBitmap2(0, 0, Boot2, 128, 32, 1); //boot splash screen
 	SSD1306_GotoXY(0, 0);
-	SSD1306_DrawBitmap2(0, 0, Bat, 16, 8, 1); //boot splash screen
+	SSD1306_DrawBitmap2(5, 5, Bat, 16, 8, 1); //boot splash screen
 	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 	//SSD1306_Puti(5, 5, 9999, 5);	
 	//SSD1306_GotoXY(0, 0);
@@ -336,9 +339,18 @@ int main()
 		//END MCU drawing code using Trackball
 		
 		/*write menu code here*/
+		static uint8_t xPos = 0;
 		
-		/*count++;
-		SSD1306_Puti(5, 5, count, 5);*/
+		static uint8_t yPos = 0;
+		yPos = 15 * (sinf(xPos/10)+1);
+		SSD1306_Clear();
+		SSD1306_DrawBitmap2((uint16_t)(xPos%128), (uint16_t) (yPos), Bat, 16, 8, 1); //boot splash screen
+		xPos++;
+
+		/*
+		count++;
+		SSD1306_Puti(5, 5, count, 5);
+		*/
 
 		SSD1306_UpdateScreen(); //copy SSD1306_Buffer into PixelDispBuffer
 //---------------------------------------End Embedded Code
