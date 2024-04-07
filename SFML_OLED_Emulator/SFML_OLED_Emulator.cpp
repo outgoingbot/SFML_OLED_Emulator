@@ -260,7 +260,7 @@ int main()
 			loadFile();
 		}
 
-#define SLEEP_TIME 25
+#define SLEEP_TIME 0
 		//Get the Emulated TrackBall
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
