@@ -95,38 +95,8 @@ sf::Vector2i mapRecttoXY(uint32_t i);
 void setLED(int idx);
 void clearLED(int idx);
 void setRect_Param(uint32_t x, uint32_t y);
+void RawbufferToBitmap(uint8_t* source, uint8_t* dest);
 //function prototypes
-
-
-
-
-//convert Oled Buffer Layout to bitmap layout
-//must use SSD1306_drawBitmap() to load the output of this
-void transpose(uint8_t source[], uint8_t dest[]) {
-	uint8_t temp[BUFFER_SIZE];
-	uint16_t sourceIdx = 0;
-	uint16_t destIdx = 0;
-
-	for (int i = 0; i < BUFFER_SIZE; i++) temp[i] = 0;
-
-	for (uint16_t col = 0; col < 4; col++) { //index through each array
-		for (uint8_t bit = 0; bit < 8; bit++) {
-			for (uint16_t row = 0; row < 16; row++) { //index through each array
-				for (uint8_t byteIdx = 0; byteIdx < 8; byteIdx++) {
-					sourceIdx = (col*128)+(row * 8)+byteIdx;
-					if (source[sourceIdx] & (1 << bit)) {
-						temp[destIdx] |= (1 << (7 - byteIdx));
-					}
-				}
-				destIdx++;
-			}
-			
-		}
-	}
-
-	//I can get rid of this copying
-	for (int i = 0; i < BUFFER_SIZE; i++) dest[i] = temp[i]; //copy back
-}
 
 int main()
 {	
@@ -464,8 +434,30 @@ int main()
 
 //--------------------------------------User Function Definitions--------------------------------------
 
+//convert Oled Buffer Layout to bitmap layout
+//must use SSD1306_drawBitmap() to load the output of this
+void RawbufferToBitmap(uint8_t* source, uint8_t* dest) {
+	uint16_t sourceIdx = 0;
+	uint16_t destIdx = 0;
+	//zero the buffer
+	for (int i = 0; i < BUFFER_SIZE; i++) dest[i] = 0;
+
+	for (uint16_t col = 0; col < 4; col++) { //index through each array
+		for (uint8_t bit = 0; bit < 8; bit++) {
+			for (uint16_t row = 0; row < 16; row++) { //index through each array
+				for (uint8_t byteIdx = 0; byteIdx < 8; byteIdx++) {
+					sourceIdx = (col * 128) + (row * 8) + byteIdx;
+					if (source[sourceIdx] & (1 << bit)) {
+						dest[destIdx] |= (1 << (7 - byteIdx));
+					}
+				}
+				destIdx++;
+			}
+		}
+	}
+}
+
 int saveFile() {
-	int size = BUFFER_SIZE; //num bytes to write
 	// Open for Write
 	std::ofstream outfile("OLED_bitmap.txt", std::ios::binary | std::ios::out);
 	if (!outfile.is_open()) {
@@ -474,21 +466,16 @@ int saveFile() {
 	}
 	
 	printf("Converting bitmap format\r\n");
-	
 #if USE_NEW_BITMAP_LAYOUT
-	outfile.write((char*)SSD1306_Buffer, size); // Writing the array elements to the file 	
+	outfile.write((char*)SSD1306_Buffer, BUFFER_SIZE); // Writing the array elements to the file 	
 #else
 	uint8_t buf[BUFFER_SIZE];
-	transpose(SSD1306_Buffer, buf);
+	RawbufferToBitmap(SSD1306_Buffer, buf); //convert raw buffer to old bitmap format
 	printf("Saving bitmap for Emulator\r\n");
-	//outfile.width(1);
-	outfile.write((char*)buf, size); // Writing the array elements to the file 	
+	outfile.write((char*)buf, BUFFER_SIZE); // Writing the array elements to the file 	
 #endif
-	
-	
 	outfile.close(); // Closing the file 
 	
-
 	//----------------------Code File----------------------
 	// Open bitmap hex array for Write
 #if USE_NEW_BITMAP_LAYOUT
@@ -503,7 +490,7 @@ int saveFile() {
 	// Writing the array elements to the file 
 	outfileCode << "const unsigned char Bitmap [] = { \r";
 	char charbuf[32];
-	for (int i = 0; i < size; i++) {
+	for (int i = 0; i < BUFFER_SIZE; i++) {
 #if USE_NEW_BITMAP_LAYOUT
 		sprintf_s(charbuf, 32, "0x%02x, ", SSD1306_Buffer[i]);
 #else
@@ -518,12 +505,12 @@ int saveFile() {
 }
 
 
+
 int loadFile() {
 	uint8_t temp[BUFFER_SIZE];
-	int size = BUFFER_SIZE;
 	printf("\r\nOpening File for Read\r\n");
 	std::ifstream infile("OLED_bitmap.txt", std::ios::binary | std::ios::in); // Opening the file in read mode 
-	infile.read((char*)temp, size); //read the array
+	infile.read((char*)temp, BUFFER_SIZE); //read the array
 	infile.close(); // Closing the file
 
 #if USE_NEW_BITMAP_LAYOUT
@@ -531,13 +518,13 @@ int loadFile() {
 	for (int i = 0; i < BUFFER_SIZE; i++) SSD1306_Buffer[i] = temp[i];
 #else
 	//use the drawbitmap
-	SSD1306_GotoXY(0, 0);
+	//SSD1306_GotoXY(0, 0);
 	SSD1306_DrawBitmap(0, 0, temp, 128, 32, SSD1306_COLOR_WHITE);
 	SSD1306_UpdateScreen(); //do i need to call update screen here?
 #endif
  // Displaying the loaded contents to the Console
 	printf("SSD1306_Buffer[] Loaded: \r\n");
-	for (int i = 0; i < size; i++) {
+	for (int i = 0; i < BUFFER_SIZE; i++) {
 		printf("%2x ", SSD1306_Buffer[i]);
 		if (!((i + 1) % 32)) printf("\r\n");
 	}
