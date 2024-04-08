@@ -57,6 +57,7 @@ Draw subsized bitmaps at top left origin. extract the array from the console...f
 #define DELTA_XY 8 //Spacing of the Pixels (larger is more spread out)
 #define PAGE_HEIGHT (DELTA_XY * ROWS_PER_PAGE) 
 
+#define USE_NEW_BITMAP_LAYOUT 1
 
 //-----------------------------------Global Variables------------------------------------
 
@@ -123,8 +124,8 @@ void transpose(uint8_t source[], uint8_t dest[]) {
 		}
 	}
 
+	//I can get rid of this copying
 	for (int i = 0; i < BUFFER_SIZE; i++) dest[i] = temp[i]; //copy back
-
 }
 
 int main()
@@ -471,19 +472,30 @@ int saveFile() {
 		std::cerr << "Failed to open file for writing.\n";
 		return 1;
 	}
-	uint8_t buf[BUFFER_SIZE];
+	
 	printf("Converting bitmap format\r\n");
+	
+#if USE_NEW_BITMAP_LAYOUT
+	outfile.write((char*)SSD1306_Buffer, size); // Writing the array elements to the file 	
+#else
+	uint8_t buf[BUFFER_SIZE];
 	transpose(SSD1306_Buffer, buf);
-
 	printf("Saving bitmap for Emulator\r\n");
-	outfile.width(1);
-	outfile.write((char*)buf, size); // Writing the array elements to the file 
+	//outfile.width(1);
+	outfile.write((char*)buf, size); // Writing the array elements to the file 	
+#endif
+	
+	
 	outfile.close(); // Closing the file 
 	
 
 	//----------------------Code File----------------------
 	// Open bitmap hex array for Write
+#if USE_NEW_BITMAP_LAYOUT
+	std::ofstream outfileCode("OLED_bitmap_codeNEW.txt");
+#else
 	std::ofstream outfileCode("OLED_bitmap_code.txt");
+#endif
 	if (!outfileCode.is_open()) {
 		std::cerr << "Failed to open file for writing.\n";
 		return 1;
@@ -492,7 +504,11 @@ int saveFile() {
 	outfileCode << "const unsigned char Bitmap [] = { \r";
 	char charbuf[32];
 	for (int i = 0; i < size; i++) {
+#if USE_NEW_BITMAP_LAYOUT
 		sprintf_s(charbuf, 32, "0x%02x, ", SSD1306_Buffer[i]);
+#else
+		sprintf_s(charbuf, 32, "0x%02x, ", buf[i]);
+#endif
 		outfileCode << charbuf;
 		if (!((i + 1) % 16)) outfileCode << "\r";
 	}
@@ -510,10 +526,16 @@ int loadFile() {
 	infile.read((char*)temp, size); //read the array
 	infile.close(); // Closing the file
 
+#if USE_NEW_BITMAP_LAYOUT
+	//just copy the buffer
+	for (int i = 0; i < BUFFER_SIZE; i++) SSD1306_Buffer[i] = temp[i];
+#else
+	//use the drawbitmap
 	SSD1306_GotoXY(0, 0);
 	SSD1306_DrawBitmap(0, 0, temp, 128, 32, SSD1306_COLOR_WHITE);
 	SSD1306_UpdateScreen(); //do i need to call update screen here?
-	// Displaying the loaded contents to the Console
+#endif
+ // Displaying the loaded contents to the Console
 	printf("SSD1306_Buffer[] Loaded: \r\n");
 	for (int i = 0; i < size; i++) {
 		printf("%2x ", SSD1306_Buffer[i]);

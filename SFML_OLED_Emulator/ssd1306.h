@@ -290,7 +290,11 @@ void ssd1306_I2C_WriteMulti(uint8_t address, uint8_t reg, uint8_t *data, uint16_
  */
 void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, SSD1306_COLOR_t color);
 
-//void SSD1306_DrawBitmap2(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color);
+
+//new version of drawing bitmap. -izzle
+void SSD1306_DrawBitmapNEW(int16_t Px, int16_t Py, const unsigned char* bitmap, int16_t w, int16_t h, SSD1306_COLOR_t color);
+
+
 // scroll the screen for fixed rows
 
 void SSD1306_ScrollRight(uint8_t start_row, uint8_t end_row);
