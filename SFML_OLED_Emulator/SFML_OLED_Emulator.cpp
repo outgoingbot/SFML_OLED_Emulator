@@ -99,6 +99,33 @@ void setRect_Param(uint32_t x, uint32_t y);
 
 
 
+//convert Oled Buffer Layout to bitmap layout
+//must use SSD1306_drawBitmap() to load the output of this
+void transpose(uint8_t source[], uint8_t dest[]) {
+	uint8_t temp[BUFFER_SIZE];
+	uint16_t sourceIdx = 0;
+	uint16_t destIdx = 0;
+
+	for (int i = 0; i < BUFFER_SIZE; i++) temp[i] = 0;
+
+	for (uint16_t col = 0; col < 4; col++) { //index through each array
+		for (uint8_t bit = 0; bit < 8; bit++) {
+			for (uint16_t row = 0; row < 16; row++) { //index through each array
+				for (uint8_t byteIdx = 0; byteIdx < 8; byteIdx++) {
+					sourceIdx = (col*128)+(row * 8)+byteIdx;
+					if (source[sourceIdx] & (1 << bit)) {
+						temp[destIdx] |= (1 << (7 - byteIdx));
+					}
+				}
+				destIdx++;
+			}
+			
+		}
+	}
+
+	for (int i = 0; i < BUFFER_SIZE; i++) dest[i] = temp[i]; //copy back
+
+}
 
 int main()
 {	
@@ -213,7 +240,7 @@ int main()
 	SSD1306_Clear(); //clear oled display buffer
 	SSD1306_DrawBitmap(0, 0, Boot, 128, 32, SSD1306_COLOR_WHITE); //boot splash screen
 	SSD1306_GotoXY(0, 0);
-	SSD1306_DrawBitmap(128-16, 0, Bat, 16, 8, SSD1306_COLOR_WHITE); //boot splash screen
+	//SSD1306_DrawBitmap(128-16, 0, Bat, 16, 8, SSD1306_COLOR_WHITE); //boot splash screen
 	//SSD1306_DrawRectangle(0, 0, 31, 31, SSD1306_COLOR_WHITE);
 	//SSD1306_Puti(5, 5, 9999, 5);	
 	//SSD1306_GotoXY(0, 0);
@@ -420,7 +447,7 @@ int main()
 		auto stopTime = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stopTime - startTime);
 		TestDeltaT = (float)duration.count() / 1000.f;
-		printf("Delta T %f\r\n", TestDeltaT);
+		//printf("Delta T %f\r\n", TestDeltaT);
 		
 	}//end update loop
 
@@ -444,9 +471,13 @@ int saveFile() {
 		std::cerr << "Failed to open file for writing.\n";
 		return 1;
 	}
+	uint8_t buf[BUFFER_SIZE];
+	printf("Converting bitmap format\r\n");
+	transpose(SSD1306_Buffer, buf);
+
 	printf("Saving bitmap for Emulator\r\n");
 	outfile.width(1);
-	outfile.write((char*)SSD1306_Buffer, size); // Writing the array elements to the file 
+	outfile.write((char*)buf, size); // Writing the array elements to the file 
 	outfile.close(); // Closing the file 
 	
 
@@ -459,10 +490,10 @@ int saveFile() {
 	}
 	// Writing the array elements to the file 
 	outfileCode << "const unsigned char Bitmap [] = { \r";
-	char buf[32];
+	char charbuf[32];
 	for (int i = 0; i < size; i++) {
-		sprintf_s(buf, 32, "0x%02x, ", SSD1306_Buffer[i]);
-		outfileCode << buf;
+		sprintf_s(charbuf, 32, "0x%02x, ", SSD1306_Buffer[i]);
+		outfileCode << charbuf;
 		if (!((i + 1) % 16)) outfileCode << "\r";
 	}
 	outfileCode << "};\r";
@@ -472,12 +503,16 @@ int saveFile() {
 
 
 int loadFile() {
+	uint8_t temp[BUFFER_SIZE];
 	int size = BUFFER_SIZE;
 	printf("\r\nOpening File for Read\r\n");
 	std::ifstream infile("OLED_bitmap.txt", std::ios::binary | std::ios::in); // Opening the file in read mode 
-	infile.read((char*)SSD1306_Buffer, size); //read the array
+	infile.read((char*)temp, size); //read the array
 	infile.close(); // Closing the file
 
+	SSD1306_GotoXY(0, 0);
+	SSD1306_DrawBitmap(0, 0, temp, 128, 32, SSD1306_COLOR_WHITE);
+	SSD1306_UpdateScreen(); //do i need to call update screen here?
 	// Displaying the loaded contents to the Console
 	printf("SSD1306_Buffer[] Loaded: \r\n");
 	for (int i = 0; i < size; i++) {
@@ -571,3 +606,4 @@ void setRect_Param(uint32_t x, uint32_t y) {
 	//Pixels[(p * PIXELS_PER_PAGE) + ((x-p) * ROWS_PER_PAGE) + y].setOutlineThickness(10);
 	Pixels[mapXYtoRect(x, y)].setOutlineColor(sf::Color::Red); //change color of border
 }
+

@@ -140,15 +140,15 @@ void SSD1306_InvertDisplay (int i)
 
 }
 
-/*
-this was obviously ripped from the adafruit GFX library by the creator of this file.
-Dont like the way it draws. the array order is
+
+//this was obviously ripped from the adafruit GFX library by the creator of this file.
+//Dont like the way it draws. the array order is
 void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16_t w, int16_t h, uint16_t color)
 {
 
     int16_t byteWidth = (w + 7) / 8; // Bitmap scanline pad = whole byte
     uint8_t byte = 0;
-
+	uint16_t idx = 0;
     for(int16_t j=0; j<h; j++, y++)
     {
         for(int16_t i=0; i<w; i++)
@@ -159,33 +159,37 @@ void SSD1306_DrawBitmap(int16_t x, int16_t y, const unsigned char* bitmap, int16
             }
             else
             {
-               byte = (*(const unsigned char *)(&bitmap[j * byteWidth + i / 8]));
+				idx = (j * byteWidth + i / 8);
+				printf("%i \r\n", idx);
+				byte = (*(const unsigned char *)(&bitmap[idx]));
             }
-            if(byte & 0x80) SSD1306_DrawPixel(x+i, y, color);
+			if (byte & 0x80) {
+				SSD1306_DrawPixel(x + i, y, color);
+			}
         }
     }
 }
-*/
 
-//this is the new method that works with the SFML_OLED_EMULATOR
-void SSD1306_DrawBitmap(int16_t Px, int16_t Py, const unsigned char* bitmap, int16_t w, int16_t h, SSD1306_COLOR_t color)
-{
-	uint16_t idx = 0;
-	uint8_t b = 0; //indexes the bits in each byte
-	
-	for (int16_t x = Px; x < Px+w; x++) { //loop thru horizonal (x max 128)
-		for (int16_t y = Py; y < Py+h; y++) { //loop thru vertical (y max 32)
-			idx = (128 * ((y-Py)/8)) + (x-Px); //byte index
-			if (bitmap[idx] & (1 << (b % 8))) { //check if bit is set
-				SSD1306_DrawPixel(x, y, color); //draw the color
-			}
-			else {
-				SSD1306_DrawPixel(x, y, !color); //draw the !color
-			}
-			b++;
-		}
-	}
-}
+
+////this is the new method that works with the SFML_OLED_EMULATOR
+//void SSD1306_DrawBitmap(int16_t Px, int16_t Py, const unsigned char* bitmap, int16_t w, int16_t h, SSD1306_COLOR_t color)
+//{
+//	uint16_t idx = 0;
+//	uint8_t b = 0; //indexes the bits in each byte
+//	
+//	for (int16_t x = Px; x < Px+w; x++) { //loop thru horizonal (x max 128)
+//		for (int16_t y = Py; y < Py+h; y++) { //loop thru vertical (y max 32)
+//			idx = (128 * ((y-Py)/8)) + (x-Px); //byte index
+//			if (bitmap[idx] & (1 << (b % 8))) { //check if bit is set
+//				SSD1306_DrawPixel(x, y, color); //draw the color
+//			}
+//			else {
+//				SSD1306_DrawPixel(x, y, !color); //draw the !color
+//			}
+//			b++;
+//		}
+//	}
+//}
 
 
 /*Izzle
