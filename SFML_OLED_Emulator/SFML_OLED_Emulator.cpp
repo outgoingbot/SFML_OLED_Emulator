@@ -1,20 +1,23 @@
 /*
 SSD1306 OLED Emulator
 
-keyboard arrow keys move pixel selection.
-space with toggle the pixel color - bouncy atm :(
+keyboard arrow keys: move pixel selection.
+space: will toggle the pixel color - bouncy atm :(
 
-escape clears the LL buffer (which in turn clears the local buffer)
-1,2,3,4 turn ON RGBW Leds
-LShift + 1,2,3,4 turn OFF RGBW Leds
+escape: clears the LL buffer (which in turn clears the local buffer)
+1,2,3,4: turn ON RGBW Leds
+LShift + 1,2,3,4: turn OFF RGBW Leds
  
- mouse left click can also setPixels and mouse Righgt click clears them
+ mouse left: click can also setPixels
+ mouse Right: click clears them
 
-ctrl + s save the bitmap (byte array) to a file on the system
-ctrl + l load the bitmap (byte array) to the display ssd1306_buffer[] (non-local) on the system
+ctrl + S: save the bitmap (byte array) to a file on the system
+ctrl + L: load the bitmap (byte array) to the display ssd1306_buffer[] (non-local) on the system
+
+home: moves the selected pixel to (0,0)
 
 Instructions:
-Draw subsized bitmaps at top left origin. extract the array from the console...for now
+Draw subsized bitmaps at top left origin. extract the array the code.txt file
 
 */
 
@@ -57,7 +60,7 @@ Draw subsized bitmaps at top left origin. extract the array from the console...f
 #define DELTA_XY 8 //Spacing of the Pixels (larger is more spread out)
 #define PAGE_HEIGHT (DELTA_XY * ROWS_PER_PAGE) 
 
-#define USE_NEW_BITMAP_LAYOUT 1
+#define USE_NEW_BITMAP_LAYOUT 0
 
 //-----------------------------------Global Variables------------------------------------
 
@@ -197,9 +200,9 @@ int main()
 	uint32_t Pixel_x = 0;
 	uint32_t Pixel_y = 0;
 
-	int count = 0;
+	int count = 0; //for testing
 	
-	//trying to keep track of time
+	//trying to keep track of time. WIP. may remove
 	#define ZERO_VEL 0
 	sf::Vector2f velocity = {0,0};
 	float TestDeltaT = 1/FPS;
@@ -286,7 +289,13 @@ int main()
 			loadFile();
 		}
 
-#define SLEEP_TIME 50
+		//move cursor to (0,0)
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Home)) {
+			Pixel_x = 0;
+			Pixel_y = 0;
+		}
+
+#define SLEEP_TIME 75
 		//Get the Emulated TrackBall
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && TB_lock.button == NOTLOCKED) {// && button lock set
 			TB_lock.button = LOCKED;
@@ -294,7 +303,7 @@ int main()
 			Button = BTN_DOWN;
 			TB->setFillColor(sf::Color::Red);
 		}
-		else { //Button lock release
+		else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
 			TB_lock.button = NOTLOCKED;
 			Button = BTN_UP;
 			TB->setFillColor(sf::Color(0x255, 0x255, 0x255));
@@ -302,41 +311,45 @@ int main()
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) && TB_lock.up == NOTLOCKED) {
 			//velocity.y -= 0.1f;
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			TB_lock.up = LOCKED;
 			if(sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_UP;
 		}
-		else {
+		else if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Up)){
 			TB_lock.up = NOTLOCKED;
 			Dpad &= ~(DPAD_UP);
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) && TB_lock.down == NOTLOCKED) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			TB_lock.down = LOCKED;
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_DOWN;
 		}
-		else {
+		else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
 			TB_lock.down = NOTLOCKED;
 			Dpad &= ~(DPAD_DOWN);
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && TB_lock.left == NOTLOCKED) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			TB_lock.left = LOCKED;
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_LEFT;
 		}
-		else {
+		else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
 			TB_lock.left = NOTLOCKED;
 			Dpad &= ~(DPAD_LEFT);
 		}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) && TB_lock.right == NOTLOCKED) {
+			Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			TB_lock.right = LOCKED;
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) Sleep(SLEEP_TIME); //trying to slow down the keyboard inputs
 			Dpad |= DPAD_RIGHT;
 		}
-		else {
+		else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
 			TB_lock.right = NOTLOCKED;
 			Dpad &= ~(DPAD_RIGHT);
 		}
@@ -347,12 +360,12 @@ int main()
 		TB->setPosition(sf::Vector2f(TB_HOME.x + TBx, TB_HOME.y + TBy));
 		//printf("%x \r\n", Dpad); //debug to console
 
-		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
-			!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
-			!sf::Keyboard::isKeyPressed(sf::Keyboard::Left) &&
-			!sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-			Dpad = DPAD_READY;
-		}
+		//if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Up) &&
+		//	!sf::Keyboard::isKeyPressed(sf::Keyboard::Down) &&
+		//	!sf::Keyboard::isKeyPressed(sf::Keyboard::Left) &&
+		//	!sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+		//	Dpad = DPAD_READY;
+		//}
 	
 
 
@@ -436,26 +449,27 @@ int main()
 
 //convert Oled Buffer Layout to bitmap layout
 //must use SSD1306_drawBitmap() to load the output of this
+//ToDo: need to generalize this. no magic numbers. based off screen sizes
 void RawbufferToBitmap(uint8_t* source, uint8_t* dest) {
 	uint16_t sourceIdx = 0;
 	uint16_t destIdx = 0;
-	//zero the buffer
-	for (int i = 0; i < BUFFER_SIZE; i++) dest[i] = 0;
+	for (int i = 0; i < BUFFER_SIZE; i++) dest[i] = 0; //zero the buffer
 
-	for (uint16_t col = 0; col < 4; col++) { //index through each array
-		for (uint8_t bit = 0; bit < 8; bit++) {
-			for (uint16_t row = 0; row < 16; row++) { //index through each array
-				for (uint8_t byteIdx = 0; byteIdx < 8; byteIdx++) {
+	for (uint16_t col = 0; col < 4; col++) { //index the pages
+		for (uint8_t bit = 0; bit < 8; bit++) { //index each bit
+			for (uint16_t row = 0; row < 16; row++) { //index the rows
+				for (uint8_t byteIdx = 0; byteIdx < 8; byteIdx++) { //check current bit in 8 bytes
 					sourceIdx = (col * 128) + (row * 8) + byteIdx;
-					if (source[sourceIdx] & (1 << bit)) {
+					if (source[sourceIdx] & (1 << bit)) { //if they are set copy them to the bitmap
 						dest[destIdx] |= (1 << (7 - byteIdx));
 					}
 				}
-				destIdx++;
+				destIdx++; //increment destIdx when 8 bytes are (and only 1 bit place each byte) are copied
 			}
 		}
 	}
 }
+
 
 int saveFile() {
 	// Open for Write
@@ -476,6 +490,13 @@ int saveFile() {
 #endif
 	outfile.close(); // Closing the file 
 	
+	// Displaying the loaded contents to the Console
+	printf("SSD1306_Buffer[] RAW: \r\n");
+	for (int i = 0; i < BUFFER_SIZE; i++) {
+		printf("%2x ", SSD1306_Buffer[i]);
+		if (!((i + 1) % 32)) printf("\r\n");
+	}
+
 	//----------------------Code File----------------------
 	// Open bitmap hex array for Write
 #if USE_NEW_BITMAP_LAYOUT
@@ -518,7 +539,6 @@ int loadFile() {
 	for (int i = 0; i < BUFFER_SIZE; i++) SSD1306_Buffer[i] = temp[i];
 #else
 	//use the drawbitmap
-	//SSD1306_GotoXY(0, 0);
 	SSD1306_DrawBitmap(0, 0, temp, 128, 32, SSD1306_COLOR_WHITE);
 	SSD1306_UpdateScreen(); //do i need to call update screen here?
 #endif
